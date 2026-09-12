@@ -1,36 +1,79 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# BloodLink
 
-## Getting Started
+Professional blood donation request management system built with Next.js and Supabase.
 
-First, run the development server:
+## Features
+
+- Email authentication with verification before admin approval
+- Blood requests with patient name, priority, deadline, and replacement blood groups
+- GPS-based donor matching within 50 km radius
+- Broadcast to all eligible donors; strict first-come unit acceptance
+- In-app notifications and mediated chat (no phone numbers exposed)
+- Donor eligibility based on 90-day cooldown and manual availability toggle
+- Post-donation confirmation flow with calendar date picker
+- Admin dashboard: user approvals, request monitoring, audit logs
+
+## Tech stack
+
+- **Frontend:** Next.js 16, React, Tailwind CSS
+- **Backend:** Supabase (Postgres, Auth, RLS)
+- **Hosting:** Vercel (recommended)
+
+## Setup
+
+### 1. Create a Supabase project
+
+1. Go to [supabase.com](https://supabase.com) and create a new project
+2. Run the SQL migration in `supabase/migrations/001_initial_schema.sql` via the SQL Editor
+3. Enable email confirmation under **Authentication → Providers → Email**
+
+### 2. Configure environment variables
+
+Copy `.env.example` to `.env.local`:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env.local
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Fill in:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 3. Create an admin user
 
-## Learn More
+After signing up and completing your profile:
 
-To learn more about Next.js, take a look at the following resources:
+```sql
+UPDATE profiles SET role = 'admin', status = 'active' WHERE email = 'your@email.com';
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 4. Run locally
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm install
+npm run dev
+```
 
-## Deploy on Vercel
+Open [http://localhost:3000](http://localhost:3000).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Deploy to Vercel
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Push to GitHub
+2. Import project in Vercel
+3. Add the same environment variables
+4. Set `NEXT_PUBLIC_APP_URL` to your production URL
+5. Add the production URL to Supabase **Authentication → URL Configuration → Redirect URLs**
+
+## Workflow summary
+
+1. User signs up → verifies email → completes profile → admin approves
+2. Requester creates blood request → all matching donors within 50 km notified
+3. Donors accept/reject → strict first-come for units (1 donor = 1 unit)
+4. Requester chats with confirmed donors via in-app messaging
+5. After request ends, donors confirm if they donated (updates 90-day cooldown)
+6. Requester can close early with reason if donors found offline

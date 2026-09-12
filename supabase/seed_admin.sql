@@ -1,0 +1,2 @@
+-- Run after first user signs up to promote them to admin:
+-- UPDATE profiles SET role = 'admin', status = 'active' WHERE email = 'admin@example.com';
