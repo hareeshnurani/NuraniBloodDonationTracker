@@ -34,22 +34,35 @@ export default async function HomePage() {
     .order("created_at", { ascending: false })
     .limit(5);
 
-  const { data: pendingConfirmations } = await supabase
-    .from("donation_confirmations")
-    .select("invitation_id, donor_invitations!inner(donor_id, blood_requests(patient_name))")
-    .eq("status", "pending")
-    .eq("donor_invitations.donor_id", profile.id);
+  const { data: acceptedInvites } = await supabase
+    .from("donor_invitations")
+    .select("id, blood_requests(patient_name), donation_confirmations(status)")
+    .eq("donor_id", profile.id)
+    .eq("is_confirmed", true);
 
   const confirmationItems =
-    pendingConfirmations?.map((c) => {
-      const inv = c.donor_invitations as unknown as {
-        blood_requests: { patient_name: string };
-      };
-      return {
-        invitation_id: c.invitation_id,
-        patient_name: inv?.blood_requests?.patient_name ?? "Patient",
-      };
-    }) ?? [];
+    acceptedInvites
+      ?.filter((inv) => {
+        const conf = inv.donation_confirmations as { status: string } | { status: string }[] | null;
+        if (!conf) return true;
+        if (Array.isArray(conf)) {
+          return conf.length === 0 || conf.some((c) => c.status === "pending");
+        }
+        return conf.status === "pending";
+      })
+      .map((inv) => {
+        const req = inv.blood_requests as unknown as { patient_name: string };
+        return {
+          invitation_id: inv.id,
+          patient_name: req?.patient_name ?? "Patient",
+        };
+      }) ?? [];
+
+  const { count: livesSaved } = await supabase
+    .from("donation_confirmations")
+    .select("invitation_id, donor_invitations!inner(donor_id)", { count: "exact", head: true })
+    .eq("status", "donated")
+    .eq("donor_invitations.donor_id", profile.id);
 
   const { data: memberships } = await supabase
     .from("community_members")
@@ -109,12 +122,20 @@ export default async function HomePage() {
     : false;
 
   const firstName = profile.name.split(" ")[0];
+  const donatedUnits = livesSaved ?? 0;
+
+  const welcomeSubtitle =
+    donorProfile && donatedUnits > 0
+      ? `You have saved ${donatedUnits} ${donatedUnits === 1 ? "life" : "lives"} through your donations. Thank you!`
+      : donorProfile
+        ? "Every donation can save a life. Turn on your availability and be someone's hero today."
+        : "Your blood donation dashboard";
 
   return (
     <div className="space-y-8">
       <PageHeader
-        title={`Hello, ${firstName}`}
-        subtitle="Your blood donation dashboard"
+        title={`Welcome, ${firstName}`}
+        subtitle={welcomeSubtitle}
         action={
           <Link href="/requests/new" className="hidden sm:block">
             <Button>
@@ -124,6 +145,8 @@ export default async function HomePage() {
           </Link>
         }
       />
+
+      <PendingConfirmations items={confirmationItems} />
 
       {donorProfile && (
         <GroupedSection title="Donor Status">
@@ -152,8 +175,6 @@ export default async function HomePage() {
           </GroupedRow>
         </GroupedSection>
       )}
-
-      <PendingConfirmations items={confirmationItems} />
 
       {communityFeed.length > 0 && (
         <section>

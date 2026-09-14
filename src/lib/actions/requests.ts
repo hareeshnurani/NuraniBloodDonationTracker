@@ -566,6 +566,12 @@ export async function acceptInvitation(invitationId: string) {
       patient_name: string;
       requester_id: string;
     };
+
+    await supabase.from("donation_confirmations").upsert(
+      { invitation_id: invitationId, status: "pending" },
+      { onConflict: "invitation_id", ignoreDuplicates: true }
+    );
+
     await createNotification(
       req.requester_id,
       "invite_accepted",
