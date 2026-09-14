@@ -53,7 +53,7 @@ export function GroupedRow({
   );
 
   const rowClass = cn(
-    "flex items-center gap-3 px-4 py-3.5 transition-colors duration-150",
+    "flex items-center gap-3 px-4 py-4 min-h-[52px] transition-colors duration-150",
     "border-b border-[var(--separator)] last:border-b-0",
     (onClick || href) && "cursor-pointer hover:bg-[var(--surface-secondary)] active:bg-[#ebebf0]",
     className

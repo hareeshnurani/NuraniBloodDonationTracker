@@ -86,3 +86,16 @@ body {
   backdrop-filter: saturate(180%) blur(20px);
   -webkit-backdrop-filter: saturate(180%) blur(20px);
 }
+
+/* Mobile-first utilities */
+@media (max-width: 1023px) {
+  .mobile-page {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+}
+
+/* Prevent content from sitting behind bottom tab bar */
+.mobile-safe-bottom {
+  padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
+}
