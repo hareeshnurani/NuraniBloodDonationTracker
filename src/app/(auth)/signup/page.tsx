@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Droplets } from "lucide-react";
+import { authCallbackUrl } from "@/lib/app-url";
 
 export default function SignupPage() {
   const [name, setName] = useState("");
@@ -26,7 +27,7 @@ export default function SignupPage() {
       password,
       options: {
         data: { name },
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding`,
+        emailRedirectTo: authCallbackUrl("/onboarding"),
       },
     });
     if (authError) {

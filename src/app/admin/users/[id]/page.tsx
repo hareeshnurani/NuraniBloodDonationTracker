@@ -6,7 +6,9 @@ import {
   UserApprovalActions,
   AdminDonorDateEditor,
   AdminMessageForm,
+  AdminRoleActions,
 } from "@/components/admin/user-actions";
+import { requireAdmin } from "@/lib/auth";
 import { USER_STATUS_LABELS } from "@/lib/constants";
 
 export default async function AdminUserDetailPage({
@@ -15,6 +17,7 @@ export default async function AdminUserDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const { profile: currentAdmin } = await requireAdmin();
   const supabase = createServiceClient();
 
   const { data: user } = await supabase
@@ -50,7 +53,10 @@ export default async function AdminUserDetailPage({
       <Link href="/admin/users" className="text-sm text-red-600 hover:underline">← Back</Link>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">{user.name}</h1>
-        <Badge>{USER_STATUS_LABELS[user.status]}</Badge>
+        <div className="flex gap-2">
+          {user.role === "admin" && <Badge variant="emergency">Admin</Badge>}
+          <Badge>{USER_STATUS_LABELS[user.status]}</Badge>
+        </div>
       </div>
 
       <Card>
@@ -79,6 +85,17 @@ export default async function AdminUserDetailPage({
           </div>
         </Card>
       )}
+
+      <Card>
+        <h2 className="font-semibold">Admin role</h2>
+        <div className="mt-3">
+          <AdminRoleActions
+            userId={id}
+            currentRole={user.role as "user" | "admin"}
+            currentUserId={currentAdmin.id}
+          />
+        </div>
+      </Card>
 
       <Card>
         <h2 className="font-semibold">Send message</h2>

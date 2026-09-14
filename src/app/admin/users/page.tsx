@@ -23,9 +23,12 @@ export default async function AdminUsersPage() {
                   <p className="font-medium">{user.name}</p>
                   <p className="text-sm text-gray-500">{user.email}</p>
                 </div>
-                <Badge variant={user.status === "pending_approval" ? "warning" : "default"}>
-                  {USER_STATUS_LABELS[user.status]}
-                </Badge>
+                <div className="flex gap-2">
+                  {user.role === "admin" && <Badge variant="emergency">Admin</Badge>}
+                  <Badge variant={user.status === "pending_approval" ? "warning" : "default"}>
+                    {USER_STATUS_LABELS[user.status]}
+                  </Badge>
+                </div>
               </div>
             </Card>
           </Link>

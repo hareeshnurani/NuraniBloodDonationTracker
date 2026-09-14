@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # BloodLink
 
 Professional blood donation request management system built with Next.js and Supabase.
@@ -78,6 +77,3 @@ Open [http://localhost:3000](http://localhost:3000).
 4. Requester chats with confirmed donors via in-app messaging
 5. After request ends, donors confirm if they donated (updates 90-day cooldown)
 6. Requester can close early with reason if donors found offline
-=======
-# NuraniBloodDonationTracker
->>>>>>> origin/main

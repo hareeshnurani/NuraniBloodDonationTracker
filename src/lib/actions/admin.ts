@@ -86,6 +86,45 @@ export async function adminUpdateDonationDate(userId: string, date: string | nul
   return { success: true };
 }
 
+export async function setUserRole(userId: string, role: "user" | "admin") {
+  const { profile } = await requireAdmin();
+  const supabase = createServiceClient();
+
+  if (userId === profile.id && role === "user") {
+    return { error: "You cannot remove your own admin access." };
+  }
+
+  const { data: target } = await supabase
+    .from("profiles")
+    .select("name, email, role")
+    .eq("id", userId)
+    .single();
+
+  if (!target) return { error: "User not found" };
+
+  await supabase.from("profiles").update({ role }).eq("id", userId);
+
+  await supabase.from("notifications").insert({
+    user_id: userId,
+    type: "admin_message",
+    title: role === "admin" ? "You are now an admin" : "Admin access removed",
+    body:
+      role === "admin"
+        ? "An administrator granted you admin access on BloodLink."
+        : "Your admin access on BloodLink has been removed.",
+    payload: { role },
+  });
+
+  await logAudit(profile.id, "role_changed", "profile", userId, {
+    new_role: role,
+    previous_role: target.role,
+  });
+
+  revalidatePath("/admin/users");
+  revalidatePath(`/admin/users/${userId}`);
+  return { success: true };
+}
+
 export async function adminSendMessage(userId: string, body: string) {
   const { profile } = await requireAdmin();
   const supabase = createServiceClient();
