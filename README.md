@@ -2,7 +2,7 @@
 
 Professional blood donation request management system built with Next.js and Supabase.
 
-> **Continuing this project?** Read **[docs/PROJECT_HANDOFF.md](docs/PROJECT_HANDOFF.md)** first — it contains the full product spec, migration order, architecture, and owner decisions for AI/human handoff.
+> **Continuing this project?** Read **[docs/PROJECT_HANDOFF.md](docs/PROJECT_HANDOFF.md)** first — it contains the full product spec, migration order, architecture, and owner decisions for AI/human handoff. PDF version: **[docs/PROJECT_HANDOFF.pdf](docs/PROJECT_HANDOFF.pdf)**.
 
 ## Features
 
