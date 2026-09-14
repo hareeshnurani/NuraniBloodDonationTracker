@@ -5,21 +5,35 @@ import { createBloodRequest } from "@/lib/actions/requests";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { FacilityPicker } from "@/components/facility-picker";
+import {
+  HospitalLocationPicker,
+  isHospitalLocationValid,
+  type HospitalLocationValue,
+} from "@/components/hospital-location-picker";
 import { PageHeader } from "@/components/ui/page-header";
 import { BLOOD_GROUPS } from "@/lib/constants";
-import type { Facility } from "@/lib/facilities";
+
+const initialLocation: HospitalLocationValue = {
+  mode: "list",
+  facility: null,
+  customHospitalName: "",
+  pincodeInfo: null,
+};
 
 export default function NewRequestPage() {
   const [acceptsReplacement, setAcceptsReplacement] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [facility, setFacility] = useState<Facility | null>(null);
+  const [location, setLocation] = useState<HospitalLocationValue>(initialLocation);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>, publish: boolean) {
     e.preventDefault();
-    if (!facility) {
-      setError("Please select a hospital or blood bank.");
+    if (!isHospitalLocationValid(location)) {
+      setError(
+        location.mode === "custom"
+          ? "Please enter the hospital name and a valid PIN code."
+          : "Please select a hospital or blood bank from the list."
+      );
       return;
     }
     setLoading(true);
@@ -40,7 +54,7 @@ export default function NewRequestPage() {
     <div className="mx-auto max-w-2xl space-y-6">
       <PageHeader
         title="Create Request"
-        subtitle="Select a hospital or blood bank. Donors within 50 km of that location will be notified."
+        subtitle="Select a hospital or enter its name and PIN code. Donors within 50 km will be notified."
       />
 
       <Card>
@@ -121,10 +135,10 @@ export default function NewRequestPage() {
 
           <div>
             <Label>Hospital / Blood bank location</Label>
-            <p className="mb-2 text-[13px] text-[var(--label-secondary)]">
-              Search and select where blood is needed. Donor matching uses this location.
+            <p className="mb-3 text-[13px] text-[var(--label-secondary)]">
+              Choose from our list of 230+ hospitals and blood banks, or enter manually using the hospital PIN code.
             </p>
-            <FacilityPicker onSelect={setFacility} required />
+            <HospitalLocationPicker value={location} onChange={setLocation} />
           </div>
 
           <div>

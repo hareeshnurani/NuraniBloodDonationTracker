@@ -86,6 +86,13 @@ export default async function RequestDetailPage({
             <div className="sm:col-span-2">
               <dt className="text-sm text-gray-500">Hospital / Blood bank</dt>
               <dd className="font-medium">{request.hospital_notes}</dd>
+              {request.pincode && (
+                <dd className="text-sm text-gray-500 mt-0.5">
+                  PIN {request.pincode}
+                  {request.location_district && ` · ${request.location_district}`}
+                  {request.location_state && `, ${request.location_state}`}
+                </dd>
+              )}
             </div>
           )}
           {request.accepts_replacement && request.request_replacement_groups?.length > 0 && (

@@ -48,6 +48,11 @@ export interface BloodRequest {
   latitude: number;
   longitude: number;
   hospital_notes: string | null;
+  facility_id: string | null;
+  custom_hospital_name: string | null;
+  pincode: string | null;
+  location_district: string | null;
+  location_state: string | null;
   closure_reason: string | null;
   closure_type: string | null;
   extension_prompted_at: string | null;

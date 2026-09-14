@@ -15,9 +15,15 @@ interface FacilityPickerProps {
   onSelect: (facility: Facility | null) => void;
   defaultFacilityId?: string;
   required?: boolean;
+  includeHiddenFields?: boolean;
 }
 
-export function FacilityPicker({ onSelect, defaultFacilityId, required = true }: FacilityPickerProps) {
+export function FacilityPicker({
+  onSelect,
+  defaultFacilityId,
+  required = true,
+  includeHiddenFields = true,
+}: FacilityPickerProps) {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Facility | null>(null);
   const [open, setOpen] = useState(false);
@@ -162,10 +168,14 @@ export function FacilityPicker({ onSelect, defaultFacilityId, required = true }:
         </div>
       )}
 
-      <input type="hidden" name="facility_id" value={selected?.id ?? ""} required={required} />
-      <input type="hidden" name="latitude" value={selected?.latitude ?? ""} required={required} />
-      <input type="hidden" name="longitude" value={selected?.longitude ?? ""} required={required} />
-      <input type="hidden" name="facility_name" value={selected?.name ?? ""} />
+      {includeHiddenFields && (
+        <>
+          <input type="hidden" name="facility_id" value={selected?.id ?? ""} required={required} />
+          <input type="hidden" name="latitude" value={selected?.latitude ?? ""} required={required} />
+          <input type="hidden" name="longitude" value={selected?.longitude ?? ""} required={required} />
+          <input type="hidden" name="facility_name" value={selected?.name ?? ""} />
+        </>
+      )}
     </div>
   );
 }
