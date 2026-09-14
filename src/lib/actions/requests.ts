@@ -44,12 +44,23 @@ async function createNotification(
   });
 }
 
+function isBloodMatch(
+  donorBloodGroup: BloodGroup,
+  primaryBloodGroup: BloodGroup,
+  acceptsReplacement: boolean,
+  replacementGroups: BloodGroup[]
+) {
+  const isPrimary = donorBloodGroup === primaryBloodGroup;
+  const isReplacement = acceptsReplacement && replacementGroups.includes(donorBloodGroup);
+  return isPrimary || isReplacement;
+}
+
 export async function broadcastRequest(requestId: string) {
   const supabase = createServiceClient();
 
   const { data: request } = await supabase
     .from("blood_requests")
-    .select("*, request_replacement_groups(blood_group)")
+    .select("*, request_replacement_groups(blood_group), request_communities(community_id)")
     .eq("id", requestId)
     .single();
 
@@ -57,6 +68,9 @@ export async function broadcastRequest(requestId: string) {
 
   const replacementGroups: BloodGroup[] =
     request.request_replacement_groups?.map((g: { blood_group: BloodGroup }) => g.blood_group) ?? [];
+
+  const communityIds: string[] =
+    request.request_communities?.map((rc: { community_id: string }) => rc.community_id) ?? [];
 
   const { data: donors } = await supabase
     .from("donor_profiles")
@@ -67,61 +81,106 @@ export async function broadcastRequest(requestId: string) {
 
   if (!donors) return;
 
-  const matches = donors
-    .filter((d) => {
-      const profile = d.profiles as { latitude: number; longitude: number };
-      if (!profile.latitude || !profile.longitude) return false;
-      if (!isDonorEligible(d.last_donation_date)) return false;
+  let communityMemberIds = new Set<string>();
+  if (communityIds.length > 0) {
+    const { data: members } = await supabase
+      .from("community_members")
+      .select("user_id")
+      .in("community_id", communityIds);
+    communityMemberIds = new Set(members?.map((m) => m.user_id) ?? []);
+  }
 
-      const distance = haversineKm(
+  const matchMap = new Map<
+    string,
+    {
+      request_id: string;
+      donor_id: string;
+      is_replacement_match: boolean;
+      distance_km: number;
+      viaCommunity: boolean;
+      viaGeneric: boolean;
+    }
+  >();
+
+  for (const d of donors) {
+    const profile = d.profiles as { id: string; latitude: number | null; longitude: number | null };
+    if (!isDonorEligible(d.last_donation_date)) continue;
+    if (!isBloodMatch(d.blood_group, request.primary_blood_group, request.accepts_replacement, replacementGroups)) {
+      continue;
+    }
+
+    const isCommunityMember = communityMemberIds.has(profile.id);
+    let distance = 0;
+    let viaGeneric = false;
+
+    if (profile.latitude && profile.longitude) {
+      distance = haversineKm(
         request.latitude,
         request.longitude,
         profile.latitude,
         profile.longitude
       );
-      if (distance > MATCH_RADIUS_KM) return false;
+      viaGeneric = distance <= MATCH_RADIUS_KM;
+    }
 
-      const isPrimary = d.blood_group === request.primary_blood_group;
-      const isReplacement =
-        request.accepts_replacement && replacementGroups.includes(d.blood_group);
-      return isPrimary || isReplacement;
-    })
-    .map((d) => {
-      const profile = d.profiles as { id: string; latitude: number; longitude: number };
-      const distance = haversineKm(
-        request.latitude,
-        request.longitude,
-        profile.latitude,
-        profile.longitude
-      );
-      return {
-        request_id: requestId,
-        donor_id: profile.id,
-        is_replacement_match:
-          d.blood_group !== request.primary_blood_group &&
-          replacementGroups.includes(d.blood_group),
-        distance_km: Math.round(distance * 10) / 10,
-      };
-    })
-    .sort((a, b) => a.distance_km - b.distance_km);
+    if (!viaGeneric && !isCommunityMember) continue;
 
+    const donorId = profile.id;
+    const existing = matchMap.get(donorId);
+    matchMap.set(donorId, {
+      request_id: requestId,
+      donor_id: donorId,
+      is_replacement_match:
+        d.blood_group !== request.primary_blood_group &&
+        replacementGroups.includes(d.blood_group),
+      distance_km: Math.round(distance * 10) / 10,
+      viaCommunity: isCommunityMember || existing?.viaCommunity || false,
+      viaGeneric: viaGeneric || existing?.viaGeneric || false,
+    });
+  }
+
+  const matches = Array.from(matchMap.values()).sort((a, b) => a.distance_km - b.distance_km);
   if (matches.length === 0) return;
 
-  await supabase.from("donor_invitations").upsert(matches, {
-    onConflict: "request_id,donor_id",
-    ignoreDuplicates: true,
-  });
+  await supabase.from("donor_invitations").upsert(
+    matches.map((m) => ({
+      request_id: m.request_id,
+      donor_id: m.donor_id,
+      is_replacement_match: m.is_replacement_match,
+      distance_km: m.distance_km,
+    })),
+    { onConflict: "request_id,donor_id", ignoreDuplicates: true }
+  );
 
   const priorityLabel = request.priority === "emergency" ? "🚨 Emergency" : "Routine";
   for (const match of matches) {
+    const donor = donors.find(
+      (d) => (d.profiles as { id: string }).id === match.donor_id
+    );
+    const notifyCommunityOnly = donor?.notify_community_only ?? false;
+
+    let shouldNotify = false;
+    if (match.viaCommunity) {
+      shouldNotify = true;
+    } else if (match.viaGeneric) {
+      shouldNotify = !notifyCommunityOnly;
+    }
+
+    if (!shouldNotify) continue;
+
     const replacementNote = match.is_replacement_match
       ? ` (Replacement donor — primary need: ${request.primary_blood_group})`
       : "";
+    const distanceNote =
+      match.distance_km > MATCH_RADIUS_KM
+        ? ` — ${match.distance_km} km away (community)`
+        : ` — ${match.distance_km} km away`;
+
     await createNotification(
       match.donor_id,
       "new_request",
       `${priorityLabel} blood request`,
-      `Blood needed for ${request.patient_name} — ${request.primary_blood_group}, ${match.distance_km} km away${replacementNote}`,
+      `Blood needed for ${request.patient_name} — ${request.primary_blood_group}${distanceNote}${replacementNote}`,
       { request_id: requestId, patient_name: request.patient_name }
     );
   }
@@ -216,6 +275,23 @@ export async function createBloodRequest(formData: FormData) {
     await supabase.from("request_replacement_groups").insert(
       replacementGroups.map((bg) => ({ request_id: request.id, blood_group: bg }))
     );
+  }
+
+  const communityIds = formData.getAll("community_ids") as string[];
+  if (communityIds.length > 0) {
+    const service = createServiceClient();
+    const { data: memberships } = await service
+      .from("community_members")
+      .select("community_id")
+      .eq("user_id", profile.id)
+      .in("community_id", communityIds);
+
+    const validIds = memberships?.map((m) => m.community_id) ?? [];
+    if (validIds.length > 0) {
+      await service.from("request_communities").insert(
+        validIds.map((cid) => ({ request_id: request.id, community_id: cid }))
+      );
+    }
   }
 
   await logAudit(profile.id, "request_created", "blood_request", request.id);
@@ -363,6 +439,98 @@ export async function checkDeadlineWarnings(requestId: string) {
       { request_id: requestId }
     );
   }
+}
+
+export async function ensureDonorInvitation(requestId: string) {
+  const profile = await getProfile();
+  if (!profile) return { error: "Not authorized" };
+
+  const supabase = createServiceClient();
+
+  const { data: existing } = await supabase
+    .from("donor_invitations")
+    .select("id, distance_km")
+    .eq("request_id", requestId)
+    .eq("donor_id", profile.id)
+    .maybeSingle();
+
+  if (existing) {
+    return { success: true, invitationId: existing.id, distance_km: existing.distance_km };
+  }
+
+  const { data: request } = await supabase
+    .from("blood_requests")
+    .select("*, request_replacement_groups(blood_group)")
+    .eq("id", requestId)
+    .single();
+
+  if (!request || !["open", "partially_filled"].includes(request.status)) {
+    return { error: "Request is not available" };
+  }
+
+  const { data: donor } = await supabase
+    .from("donor_profiles")
+    .select("*")
+    .eq("user_id", profile.id)
+    .single();
+
+  if (!donor?.willing_to_donate || !donor.is_available) {
+    return { error: "Enable donor availability to respond" };
+  }
+  if (!isDonorEligible(donor.last_donation_date)) {
+    return { error: "You are not eligible to donate yet" };
+  }
+
+  const replacementGroups: BloodGroup[] =
+    request.request_replacement_groups?.map((g: { blood_group: BloodGroup }) => g.blood_group) ?? [];
+
+  if (!isBloodMatch(donor.blood_group, request.primary_blood_group, request.accepts_replacement, replacementGroups)) {
+    return { error: "Your blood group does not match this request" };
+  }
+
+  let distance = 0;
+  if (profile.latitude && profile.longitude) {
+    distance = haversineKm(
+      request.latitude,
+      request.longitude,
+      profile.latitude,
+      profile.longitude
+    );
+  }
+
+  const isReplacement =
+    donor.blood_group !== request.primary_blood_group &&
+    replacementGroups.includes(donor.blood_group);
+
+  const { data: invitation, error } = await supabase
+    .from("donor_invitations")
+    .insert({
+      request_id: requestId,
+      donor_id: profile.id,
+      is_replacement_match: isReplacement,
+      distance_km: Math.round(distance * 10) / 10,
+    })
+    .select("id")
+    .single();
+
+  if (error) {
+    const { data: retry } = await supabase
+      .from("donor_invitations")
+      .select("id, distance_km")
+      .eq("request_id", requestId)
+      .eq("donor_id", profile.id)
+      .single();
+    if (retry) {
+      return { success: true, invitationId: retry.id, distance_km: retry.distance_km };
+    }
+    return { error: error.message };
+  }
+
+  return {
+    success: true,
+    invitationId: invitation.id,
+    distance_km: Math.round(distance * 10) / 10,
+  };
 }
 
 export async function acceptInvitation(invitationId: string) {

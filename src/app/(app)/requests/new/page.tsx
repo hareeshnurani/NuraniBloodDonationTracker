@@ -12,6 +12,7 @@ import {
 } from "@/components/hospital-location-picker";
 import { PageHeader } from "@/components/ui/page-header";
 import { BLOOD_GROUPS } from "@/lib/constants";
+import { CommunitySelector } from "@/components/communities/community-selector";
 
 const initialLocation: HospitalLocationValue = {
   mode: "list",
@@ -25,6 +26,7 @@ export default function NewRequestPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [location, setLocation] = useState<HospitalLocationValue>(initialLocation);
+  const [selectedCommunities, setSelectedCommunities] = useState<string[]>([]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>, publish: boolean) {
     e.preventDefault();
@@ -54,7 +56,7 @@ export default function NewRequestPage() {
     <div className="mx-auto max-w-2xl space-y-6">
       <PageHeader
         title="Create Request"
-        subtitle="Select a hospital or enter its name and PIN code. Donors within 50 km will be notified."
+        subtitle="Select a hospital or enter its name and PIN code. Nearby donors and community members will be notified."
       />
 
       <Card className="overflow-visible">
@@ -130,6 +132,13 @@ export default function NewRequestPage() {
             <div>
               <Label htmlFor="deadline">Deadline</Label>
               <Input id="deadline" name="deadline" type="datetime-local" required />
+            </div>
+          </div>
+
+          <div>
+            <Label>Share with communities (optional)</Label>
+            <div className="mt-2">
+              <CommunitySelector selected={selectedCommunities} onChange={setSelectedCommunities} />
             </div>
           </div>
 

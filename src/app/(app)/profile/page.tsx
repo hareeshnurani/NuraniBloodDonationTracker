@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { updateDonorProfile } from "@/lib/actions/profile";
+import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
@@ -32,6 +33,13 @@ export default function ProfilePage() {
     }
     load();
   }, []);
+
+  async function handleNotifyPreference(checked: boolean) {
+    const formData = new FormData();
+    formData.set("notify_community_only", checked ? "true" : "false");
+    await updateDonorProfile(formData);
+    if (donor) setDonor({ ...donor, notify_community_only: checked });
+  }
 
   async function handleDonorUpdate(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -106,6 +114,19 @@ export default function ProfilePage() {
           />
         </div>
       </GroupedSection>
+
+      {donor && (
+        <GroupedSection title="Notification Preferences">
+          <div className="p-4">
+            <Switch
+              checked={donor.notify_community_only ?? false}
+              onChange={handleNotifyPreference}
+              label="Community-only notifications"
+              description="Only get notified for requests in your communities. You can still browse and accept all active requests."
+            />
+          </div>
+        </GroupedSection>
+      )}
 
       {donor && (
         <GroupedSection title="Donor Profile">
