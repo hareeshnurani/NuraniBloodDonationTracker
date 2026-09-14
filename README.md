@@ -2,16 +2,19 @@
 
 Professional blood donation request management system built with Next.js and Supabase.
 
+> **Continuing this project?** Read **[docs/PROJECT_HANDOFF.md](docs/PROJECT_HANDOFF.md)** first — it contains the full product spec, migration order, architecture, and owner decisions for AI/human handoff.
+
 ## Features
 
-- Email authentication with verification before admin approval
-- Blood requests with patient name, priority, deadline, and replacement blood groups
-- GPS-based donor matching within 50 km radius
-- Broadcast to all eligible donors; strict first-come unit acceptance
+- Email authentication with auto-approve onboarding
+- Blood requests with hospital/blood bank picker (230+ facilities) or custom PIN code location
+- Communities: public/private groups, multi-community posting, community-wide donor matching
+- GPS-based generic donor matching within 50 km; community members matched at any distance
+- Broadcast to eligible donors; strict first-come unit acceptance
 - In-app notifications and mediated chat (no phone numbers exposed)
 - Donor eligibility based on 90-day cooldown and manual availability toggle
-- Post-donation confirmation flow with calendar date picker
-- Admin dashboard: user approvals, request monitoring, audit logs
+- Post-accept donation confirmation, donation history, and "lives saved" welcome
+- Light app admin dashboard: user monitoring, requests, audit logs
 
 ## Tech stack
 
@@ -24,7 +27,7 @@ Professional blood donation request management system built with Next.js and Sup
 ### 1. Create a Supabase project
 
 1. Go to [supabase.com](https://supabase.com) and create a new project
-2. Run the SQL migration in `supabase/migrations/001_initial_schema.sql` via the SQL Editor
+2. Run **all** SQL migrations in `supabase/migrations/` (001 through 007) in order via the SQL Editor — see [docs/PROJECT_HANDOFF.md](docs/PROJECT_HANDOFF.md) for details
 3. Enable email confirmation under **Authentication → Providers → Email**
 
 ### 2. Configure environment variables
@@ -71,9 +74,9 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Workflow summary
 
-1. User signs up → verifies email → completes profile → admin approves
-2. Requester creates blood request → all matching donors within 50 km notified
+1. User signs up → verifies email → completes profile → **auto-approved**
+2. Requester creates blood request (optionally shares with communities) → matching donors notified
 3. Donors accept/reject → strict first-come for units (1 donor = 1 unit)
-4. Requester chats with confirmed donors via in-app messaging
-5. After request ends, donors confirm if they donated (updates 90-day cooldown)
+4. Donor confirms donation completion on home (yes + date, or no + reason)
+5. Requester chats with confirmed donors via in-app messaging
 6. Requester can close early with reason if donors found offline
