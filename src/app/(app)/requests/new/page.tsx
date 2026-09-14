@@ -57,7 +57,7 @@ export default function NewRequestPage() {
         subtitle="Select a hospital or enter its name and PIN code. Donors within 50 km will be notified."
       />
 
-      <Card>
+      <Card className="overflow-visible">
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -133,7 +133,7 @@ export default function NewRequestPage() {
             </div>
           </div>
 
-          <div>
+          <div className="relative z-20 overflow-visible">
             <Label>Hospital / Blood bank location</Label>
             <p className="mb-3 text-[13px] text-[var(--label-secondary)]">
               Choose from our list of 230+ hospitals and blood banks, or enter manually using the hospital PIN code.

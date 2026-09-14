@@ -94,9 +94,14 @@ export function HospitalLocationPicker({ value, onChange }: HospitalLocationPick
               : "text-[var(--label-secondary)]"
           )}
         >
-          Hospital not in list
+          Not in list
         </button>
       </div>
+      <p className="text-[12px] text-[var(--label-tertiary)]">
+        {value.mode === "list"
+          ? "Tap the search box below to browse 230+ hospitals and blood banks."
+          : "Enter the hospital name and its 6-digit PIN code."}
+      </p>
 
       {value.mode === "list" ? (
         <>

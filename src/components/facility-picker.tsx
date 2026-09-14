@@ -84,7 +84,7 @@ export function FacilityPicker({
   }
 
   return (
-    <div ref={containerRef} className="relative">
+    <div ref={containerRef} className="relative z-30">
       <div className="relative">
         <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--label-tertiary)]" />
         <input
@@ -109,7 +109,7 @@ export function FacilityPicker({
       </div>
 
       {open && (
-        <div className="absolute z-50 mt-1.5 max-h-72 w-full overflow-y-auto rounded-[var(--radius-md)] border border-[var(--separator)] bg-[var(--surface)] shadow-[var(--shadow-lg)]">
+        <div className="absolute z-[100] mt-1.5 max-h-[min(18rem,50vh)] w-full overflow-y-auto rounded-[var(--radius-md)] border border-[var(--separator)] bg-[var(--surface)] shadow-[var(--shadow-lg)]">
           {results.length === 0 ? (
             <p className="px-4 py-6 text-center text-[14px] text-[var(--label-secondary)]">
               No hospitals or blood banks found
