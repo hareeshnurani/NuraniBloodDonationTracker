@@ -8,6 +8,7 @@ import { haversineKm, isDonorEligible, shouldPromptDeadlineExtension } from "@/l
 import { MATCH_RADIUS_KM } from "@/lib/constants";
 import type { BloodGroup } from "@/lib/constants";
 import { getFacilityById } from "@/lib/facilities";
+import { lookupPincode, isValidPincode } from "@/lib/pincode";
 
 async function logAudit(
   actorId: string,
@@ -136,16 +137,55 @@ export async function createBloodRequest(formData: FormData) {
   const replacementGroups = formData.getAll("replacement_groups") as BloodGroup[];
   const publish = formData.get("publish") === "true";
 
-  const facilityId = formData.get("facility_id") as string;
-  const facility = getFacilityById(facilityId);
-  if (!facility) {
-    return { error: "Please select a valid hospital or blood bank." };
-  }
-
+  const locationMode = (formData.get("location_mode") as string) || "list";
   const additionalNotes = (formData.get("hospital_notes") as string)?.trim();
-  const hospitalNotes = additionalNotes
-    ? `${facility.name} — ${additionalNotes}`
-    : facility.name;
+
+  let latitude: number;
+  let longitude: number;
+  let hospitalNotes: string;
+  let facilityId: string | null = null;
+  let customHospitalName: string | null = null;
+  let pincode: string | null = null;
+  let locationDistrict: string | null = null;
+  let locationState: string | null = null;
+
+  if (locationMode === "custom") {
+    customHospitalName = (formData.get("custom_hospital_name") as string)?.trim();
+    pincode = (formData.get("pincode") as string)?.trim();
+
+    if (!customHospitalName) {
+      return { error: "Please enter the hospital or blood bank name." };
+    }
+    if (!pincode || !isValidPincode(pincode)) {
+      return { error: "Please enter a valid 6-digit PIN code." };
+    }
+
+    const pincodeResult = await lookupPincode(pincode);
+    if ("error" in pincodeResult) {
+      return { error: pincodeResult.error };
+    }
+
+    latitude = pincodeResult.data.latitude;
+    longitude = pincodeResult.data.longitude;
+    locationDistrict = pincodeResult.data.district;
+    locationState = pincodeResult.data.state;
+    hospitalNotes = additionalNotes
+      ? `${customHospitalName}, ${locationDistrict} (${pincode}) — ${additionalNotes}`
+      : `${customHospitalName}, ${locationDistrict} (${pincode})`;
+  } else {
+    const selectedFacilityId = formData.get("facility_id") as string;
+    const facility = getFacilityById(selectedFacilityId);
+    if (!facility) {
+      return { error: "Please select a valid hospital or blood bank." };
+    }
+
+    facilityId = facility.id;
+    latitude = facility.latitude;
+    longitude = facility.longitude;
+    hospitalNotes = additionalNotes
+      ? `${facility.name} — ${additionalNotes}`
+      : facility.name;
+  }
 
   const { data: request, error } = await supabase
     .from("blood_requests")
@@ -157,9 +197,14 @@ export async function createBloodRequest(formData: FormData) {
       priority: formData.get("priority") as string,
       deadline: formData.get("deadline") as string,
       accepts_replacement: formData.get("accepts_replacement") === "true",
-      latitude: facility.latitude,
-      longitude: facility.longitude,
+      latitude,
+      longitude,
       hospital_notes: hospitalNotes,
+      facility_id: facilityId,
+      custom_hospital_name: customHospitalName,
+      pincode,
+      location_district: locationDistrict,
+      location_state: locationState,
       status: publish ? "open" : "draft",
     })
     .select()
