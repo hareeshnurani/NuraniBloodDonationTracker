@@ -2,7 +2,12 @@
 
 Professional blood donation request management system built with Next.js and Supabase.
 
-> **Continuing this project?** Read **[docs/PROJECT_HANDOFF.md](docs/PROJECT_HANDOFF.md)** first — it contains the full product spec, migration order, architecture, and owner decisions for AI/human handoff. PDF version: **[docs/PROJECT_HANDOFF.pdf](docs/PROJECT_HANDOFF.pdf)**.
+> **Continuing this project?** Read **[docs/PROJECT_HANDOFF.md](docs/PROJECT_HANDOFF.md)** first — full product spec, migrations, architecture, and owner decisions.
+>
+> **PDF download** (GitHub preview often fails — use one of these):
+> - [Release download](https://github.com/sridushiva-dev/NuraniBloodDonationTracker/releases/tag/v1.0-handoff) ← **recommended**
+> - [Direct PDF link](https://raw.githubusercontent.com/sridushiva-dev/NuraniBloodDonationTracker/main/docs/PROJECT_HANDOFF.pdf) (right-click → Save as)
+> - See [docs/DOWNLOAD_HANDOFF.md](docs/DOWNLOAD_HANDOFF.md) for all options
 
 ## Features
 
