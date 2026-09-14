@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { createServiceClient } from "@/lib/supabase/admin";
 import { getProfile } from "@/lib/auth";
 import type { BloodGroup } from "@/lib/constants";
 
@@ -24,7 +23,7 @@ export async function completeProfile(formData: FormData) {
       name,
       latitude,
       longitude,
-      status: "pending_approval",
+      status: "active",
     })
     .eq("id", user.id);
 
@@ -43,18 +42,6 @@ export async function completeProfile(formData: FormData) {
     });
 
     if (donorError) return { error: donorError.message };
-  }
-
-  const service = createServiceClient();
-  const { data: admins } = await service.from("profiles").select("id").eq("role", "admin");
-  for (const admin of admins ?? []) {
-    await service.from("notifications").insert({
-      user_id: admin.id,
-      type: "user_approved",
-      title: "New user pending approval",
-      body: `${name} has completed registration and needs approval.`,
-      payload: { user_id: user.id },
-    });
   }
 
   revalidatePath("/");
@@ -76,6 +63,9 @@ export async function updateDonorProfile(formData: FormData) {
   }
   if (formData.has("blood_group")) {
     updates.blood_group = formData.get("blood_group");
+  }
+  if (formData.has("notify_community_only")) {
+    updates.notify_community_only = formData.get("notify_community_only") === "true";
   }
 
   const { error } = await supabase

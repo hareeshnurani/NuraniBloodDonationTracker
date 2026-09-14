@@ -26,7 +26,7 @@ export default function OnboardingPage() {
       setLoading(false);
       return;
     }
-    window.location.href = "/pending-approval";
+    window.location.href = "/home";
   }
 
   return (

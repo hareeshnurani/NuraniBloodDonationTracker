@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { User, Shield, Plus, LogOut, X } from "lucide-react";
+import { User, Shield, Plus, LogOut, X, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 interface MobileMoreSheetProps {
@@ -24,6 +24,7 @@ export function MobileMoreSheet({ open, onClose, isAdmin }: MobileMoreSheetProps
   if (!open) return null;
 
   const items = [
+    { href: "/communities", label: "Communities", icon: Users, description: "Join and manage groups" },
     { href: "/profile", label: "Profile", icon: User, description: "Account & donor settings" },
     { href: "/requests/new", label: "New Request", icon: Plus, description: "Request blood for a patient" },
     ...(isAdmin

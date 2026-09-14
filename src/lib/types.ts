@@ -26,12 +26,49 @@ export interface Profile {
   updated_at: string;
 }
 
+export type CommunityVisibility = "public" | "private";
+
 export interface DonorProfile {
   user_id: string;
   blood_group: BloodGroup;
   last_donation_date: string | null;
   is_available: boolean;
   willing_to_donate: boolean;
+  notify_community_only: boolean;
+}
+
+export interface Community {
+  id: string;
+  name: string;
+  description: string | null;
+  visibility: CommunityVisibility;
+  creator_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CommunityMember {
+  community_id: string;
+  user_id: string;
+  is_admin: boolean;
+  joined_at: string;
+  profiles?: Pick<Profile, "name" | "email">;
+}
+
+export interface CommunityInvite {
+  id: string;
+  community_id: string;
+  code: string;
+  created_by: string;
+  expires_at: string | null;
+  created_at: string;
+}
+
+export interface UserCommunityPin {
+  user_id: string;
+  community_id: string;
+  sort_order: number;
+  pinned_at: string;
 }
 
 export interface BloodRequest {

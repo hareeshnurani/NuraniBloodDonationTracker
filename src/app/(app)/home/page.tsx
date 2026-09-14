@@ -7,9 +7,10 @@ import { PageHeader, SectionHeader, EmptyState } from "@/components/ui/page-head
 import { GroupedSection, GroupedRow, GroupedRowIcon } from "@/components/ui/grouped-list";
 import { DonorAvailabilityToggle } from "@/components/donor/availability-toggle";
 import { PendingConfirmations } from "@/components/donor/pending-confirmations";
+import { PinReorderList } from "@/components/communities/pin-reorder-list";
 import { REQUEST_STATUS_LABELS, PRIORITY_LABELS } from "@/lib/constants";
 import { formatDistance, getEligibleDate, isDonorEligible } from "@/lib/utils";
-import { Droplets, Plus, AlertCircle, Heart, ChevronRight } from "lucide-react";
+import { Droplets, Plus, AlertCircle, Heart, ChevronRight, Users } from "lucide-react";
 import { format } from "date-fns";
 
 export default async function HomePage() {
@@ -49,6 +50,59 @@ export default async function HomePage() {
         patient_name: inv?.blood_requests?.patient_name ?? "Patient",
       };
     }) ?? [];
+
+  const { data: memberships } = await supabase
+    .from("community_members")
+    .select("community_id, communities(id, name)")
+    .eq("user_id", profile.id);
+
+  const { data: pins } = await supabase
+    .from("user_community_pins")
+    .select("community_id, sort_order")
+    .eq("user_id", profile.id)
+    .order("sort_order", { ascending: true });
+
+  const communityIds = memberships?.map((m) => m.community_id) ?? [];
+  let communityFeed: { id: string; name: string; activeCount: number; sort_order: number; pinned: boolean }[] = [];
+
+  if (communityIds.length > 0) {
+    const { data: requestLinks } = await supabase
+      .from("request_communities")
+      .select("community_id, blood_requests(status)")
+      .in("community_id", communityIds);
+
+    const activeCountMap = new Map<string, number>();
+    for (const rl of requestLinks ?? []) {
+      const req = rl.blood_requests as unknown as { status: string } | null;
+      if (req && ["open", "partially_filled"].includes(req.status)) {
+        activeCountMap.set(rl.community_id, (activeCountMap.get(rl.community_id) ?? 0) + 1);
+      }
+    }
+
+    const pinMap = new Map(pins?.map((p) => [p.community_id, p.sort_order]) ?? []);
+
+    communityFeed = (memberships ?? []).map((m) => {
+      const c = m.communities as unknown as { id: string; name: string };
+      return {
+        id: c.id,
+        name: c.name,
+        activeCount: activeCountMap.get(m.community_id) ?? 0,
+        sort_order: pinMap.get(m.community_id) ?? 999,
+        pinned: pinMap.has(m.community_id),
+      };
+    });
+
+    communityFeed.sort((a, b) => {
+      if (a.pinned && !b.pinned) return -1;
+      if (!a.pinned && b.pinned) return 1;
+      if (a.pinned && b.pinned) return a.sort_order - b.sort_order;
+      if (b.activeCount !== a.activeCount) return b.activeCount - a.activeCount;
+      return a.name.localeCompare(b.name);
+    });
+  }
+
+  const pinnedCommunities = communityFeed.filter((c) => c.pinned);
+  const unpinnedCommunities = communityFeed.filter((c) => !c.pinned);
 
   const eligible = donorProfile
     ? isDonorEligible(donorProfile.last_donation_date)
@@ -101,8 +155,45 @@ export default async function HomePage() {
 
       <PendingConfirmations items={confirmationItems} />
 
+      {communityFeed.length > 0 && (
+        <section>
+          <SectionHeader
+            title="My Communities"
+            action={
+              <Link href="/communities" className="text-[15px] font-medium text-[var(--accent)] flex items-center gap-0.5">
+                See all <ChevronRight className="h-4 w-4" />
+              </Link>
+            }
+          />
+          {pinnedCommunities.length > 0 && (
+            <GroupedSection>
+              <PinReorderList communities={pinnedCommunities} />
+            </GroupedSection>
+          )}
+          {unpinnedCommunities.length > 0 && (
+            <GroupedSection className={pinnedCommunities.length > 0 ? "mt-2" : ""}>
+              {unpinnedCommunities.slice(0, 5).map((c) => (
+                <GroupedRow key={c.id} href={`/communities/${c.id}`} showChevron>
+                  <GroupedRowIcon color="blue">
+                    <Users className="h-4 w-4" />
+                  </GroupedRowIcon>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[15px] font-medium text-[var(--label)]">{c.name}</span>
+                    {c.activeCount > 0 && (
+                      <p className="text-[13px] text-[var(--accent)] mt-0.5">
+                        {c.activeCount} active request{c.activeCount !== 1 ? "s" : ""}
+                      </p>
+                    )}
+                  </div>
+                </GroupedRow>
+              ))}
+            </GroupedSection>
+          )}
+        </section>
+      )}
+
       <section>
-        <SectionHeader title="Active Requests" />
+        <SectionHeader title="My Active Requests" />
         {myRequests && myRequests.length > 0 ? (
           <GroupedSection>
             {myRequests.map((req) => (

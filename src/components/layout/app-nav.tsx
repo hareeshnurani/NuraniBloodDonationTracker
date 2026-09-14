@@ -10,6 +10,7 @@ import {
   Bell,
   MessageCircle,
   User,
+  Users,
   Shield,
   LogOut,
   Plus,
@@ -20,6 +21,7 @@ import { MobileMoreSheet } from "./mobile-more-sheet";
 
 const desktopLinks = [
   { href: "/home", label: "Home", icon: Home },
+  { href: "/communities", label: "Groups", icon: Users },
   { href: "/donor/invites", label: "Donor", icon: Droplets },
   { href: "/notifications", label: "Alerts", icon: Bell },
   { href: "/chat", label: "Chat", icon: MessageCircle },

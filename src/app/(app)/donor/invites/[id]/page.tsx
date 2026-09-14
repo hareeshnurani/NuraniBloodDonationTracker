@@ -90,7 +90,7 @@ export default async function InviteDetailPage({
         </p>
         {canRespond && (
           <div className="mt-4 border-t border-gray-100 pt-4">
-            <InviteActions invitationId={id} />
+            <InviteActions invitationId={id} distanceKm={inv.distance_km} />
           </div>
         )}
         {inv.is_confirmed && (
