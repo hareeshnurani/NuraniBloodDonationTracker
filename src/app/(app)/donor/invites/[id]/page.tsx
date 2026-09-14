@@ -80,7 +80,7 @@ export default async function InviteDetailPage({
           </div>
           {req.hospital_notes && (
             <div>
-              <dt className="text-sm text-gray-500">Hospital / notes</dt>
+              <dt className="text-sm text-gray-500">Hospital / Blood bank</dt>
               <dd className="font-medium">{req.hospital_notes}</dd>
             </div>
           )}

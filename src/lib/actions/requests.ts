@@ -7,6 +7,7 @@ import { getProfile } from "@/lib/auth";
 import { haversineKm, isDonorEligible, shouldPromptDeadlineExtension } from "@/lib/utils";
 import { MATCH_RADIUS_KM } from "@/lib/constants";
 import type { BloodGroup } from "@/lib/constants";
+import { getFacilityById } from "@/lib/facilities";
 
 async function logAudit(
   actorId: string,
@@ -135,6 +136,17 @@ export async function createBloodRequest(formData: FormData) {
   const replacementGroups = formData.getAll("replacement_groups") as BloodGroup[];
   const publish = formData.get("publish") === "true";
 
+  const facilityId = formData.get("facility_id") as string;
+  const facility = getFacilityById(facilityId);
+  if (!facility) {
+    return { error: "Please select a valid hospital or blood bank." };
+  }
+
+  const additionalNotes = (formData.get("hospital_notes") as string)?.trim();
+  const hospitalNotes = additionalNotes
+    ? `${facility.name} — ${additionalNotes}`
+    : facility.name;
+
   const { data: request, error } = await supabase
     .from("blood_requests")
     .insert({
@@ -145,9 +157,9 @@ export async function createBloodRequest(formData: FormData) {
       priority: formData.get("priority") as string,
       deadline: formData.get("deadline") as string,
       accepts_replacement: formData.get("accepts_replacement") === "true",
-      latitude: parseFloat(formData.get("latitude") as string),
-      longitude: parseFloat(formData.get("longitude") as string),
-      hospital_notes: (formData.get("hospital_notes") as string) || null,
+      latitude: facility.latitude,
+      longitude: facility.longitude,
+      hospital_notes: hospitalNotes,
       status: publish ? "open" : "draft",
     })
     .select()
