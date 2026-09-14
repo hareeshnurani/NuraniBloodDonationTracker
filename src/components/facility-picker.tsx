@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import {
   FACILITIES,
+  FACILITY_CITIES,
   FACILITY_TYPE_LABELS,
   searchFacilities,
   type Facility,
@@ -46,6 +47,12 @@ export function FacilityPicker({ onSelect, defaultFacilityId, required = true }:
   }, [selected]);
 
   const results = query.trim() ? searchFacilities(query) : FACILITIES;
+
+  const groupedResults = FACILITY_CITIES.reduce<Record<string, Facility[]>>((acc, city) => {
+    const cityFacilities = results.filter((f) => f.city === city);
+    if (cityFacilities.length > 0) acc[city] = cityFacilities;
+    return acc;
+  }, {});
 
   function handleSelect(facility: Facility) {
     setSelected(facility);
@@ -96,44 +103,51 @@ export function FacilityPicker({ onSelect, defaultFacilityId, required = true }:
       </div>
 
       {open && (
-        <div className="absolute z-50 mt-1.5 max-h-64 w-full overflow-y-auto rounded-[var(--radius-md)] border border-[var(--separator)] bg-[var(--surface)] shadow-[var(--shadow-lg)]">
+        <div className="absolute z-50 mt-1.5 max-h-72 w-full overflow-y-auto rounded-[var(--radius-md)] border border-[var(--separator)] bg-[var(--surface)] shadow-[var(--shadow-lg)]">
           {results.length === 0 ? (
             <p className="px-4 py-6 text-center text-[14px] text-[var(--label-secondary)]">
               No hospitals or blood banks found
             </p>
           ) : (
-            results.map((facility) => (
-              <button
-                key={facility.id}
-                type="button"
-                onClick={() => handleSelect(facility)}
-                className={cn(
-                  "flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-[var(--surface-secondary)] active:bg-[#ebebf0]",
-                  selected?.id === facility.id && "bg-[var(--accent-soft)]"
-                )}
-              >
-                <div
-                  className={cn(
-                    "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px]",
-                    facility.type === "hospital"
-                      ? "bg-[#007aff1a] text-[#007aff]"
-                      : "bg-[var(--accent-soft)] text-[var(--accent)]"
-                  )}
-                >
-                  {facility.type === "hospital" ? (
-                    <Building2 className="h-4 w-4" />
-                  ) : (
-                    <Droplets className="h-4 w-4" />
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[15px] font-medium text-[var(--label)]">{facility.name}</p>
-                  <p className="text-[13px] text-[var(--label-secondary)]">
-                    {FACILITY_TYPE_LABELS[facility.type]} · {facility.city}
-                  </p>
-                  <p className="text-[12px] text-[var(--label-tertiary)] truncate">{facility.address}</p>
-                </div>
-              </button>
+            Object.entries(groupedResults).map(([city, cityFacilities]) => (
+              <div key={city}>
+                <p className="sticky top-0 bg-[var(--surface-secondary)] px-4 py-2 text-[12px] font-semibold uppercase tracking-wide text-[var(--label-secondary)]">
+                  {city}
+                </p>
+                {cityFacilities.map((facility) => (
+                  <button
+                    key={facility.id}
+                    type="button"
+                    onClick={() => handleSelect(facility)}
+                    className={cn(
+                      "flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-[var(--surface-secondary)] active:bg-[#ebebf0]",
+                      selected?.id === facility.id && "bg-[var(--accent-soft)]"
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px]",
+                        facility.type === "hospital"
+                          ? "bg-[#007aff1a] text-[#007aff]"
+                          : "bg-[var(--accent-soft)] text-[var(--accent)]"
+                      )}
+                    >
+                      {facility.type === "hospital" ? (
+                        <Building2 className="h-4 w-4" />
+                      ) : (
+                        <Droplets className="h-4 w-4" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[15px] font-medium text-[var(--label)]">{facility.name}</p>
+                      <p className="text-[13px] text-[var(--label-secondary)]">
+                        {FACILITY_TYPE_LABELS[facility.type]}
+                      </p>
+                      <p className="text-[12px] text-[var(--label-tertiary)] truncate">{facility.address}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
             ))
           )}
         </div>

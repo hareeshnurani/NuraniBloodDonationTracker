@@ -1,0 +1,38 @@
+import type { Facility } from "./types";
+
+export const CHENNAI_FACILITIES: Facility[] = [
+  // Hospitals
+  { id: "chennai-apollo-greams", name: "Apollo Hospitals, Greams Road", type: "hospital", city: "Chennai", address: "Greams Lane, Greams Road", latitude: 13.0604, longitude: 80.2496 },
+  { id: "chennai-apollo-teynampet", name: "Apollo Specialty Hospital, Teynampet", type: "hospital", city: "Chennai", address: "Anna Salai, Teynampet", latitude: 13.0412, longitude: 80.2456 },
+  { id: "chennai-apollo-omr", name: "Apollo Specialty Hospital, OMR", type: "hospital", city: "Chennai", address: "Old Mahabalipuram Road, Perungudi", latitude: 12.9656, longitude: 80.2456 },
+  { id: "chennai-apollo-vanagaram", name: "Apollo Specialty Hospital, Vanagaram", type: "hospital", city: "Chennai", address: "Vanagaram-Ambattur Main Road", latitude: 13.0789, longitude: 80.1234 },
+  { id: "chennai-apollo-kilpauk", name: "Apollo First Med Hospitals, Kilpauk", type: "hospital", city: "Chennai", address: "Poonamallee High Road, Kilpauk", latitude: 13.0789, longitude: 80.2345 },
+  { id: "chennai-apollo-proton", name: "Apollo Proton Cancer Centre", type: "hospital", city: "Chennai", address: "Taramani, Chennai", latitude: 13.0123, longitude: 80.2456 },
+  { id: "chennai-fortis-malar", name: "Fortis Malar Hospital", type: "hospital", city: "Chennai", address: "Gandhi Nagar, Adyar", latitude: 13.0067, longitude: 80.2546 },
+  { id: "chennai-fortis-vadapalani", name: "Fortis Hospital Vadapalani", type: "hospital", city: "Chennai", address: "Vadapalani, Chennai", latitude: 13.0512, longitude: 80.2123 },
+  { id: "chennai-miot", name: "MIOT International", type: "hospital", city: "Chennai", address: "Manapakkam, Chennai", latitude: 13.0189, longitude: 80.1623 },
+  { id: "chennai-sri-ramachandra", name: "Sri Ramachandra Medical Centre", type: "hospital", city: "Chennai", address: "Porur, Chennai", latitude: 13.0356, longitude: 80.1567 },
+  { id: "chennai-mgm-healthcare", name: "MGM Healthcare", type: "hospital", city: "Chennai", address: "Nelson Manickam Road, Aminjikarai", latitude: 13.0712, longitude: 80.2234 },
+  { id: "chennai-kauvery", name: "Kauvery Hospital", type: "hospital", city: "Chennai", address: "Radial Road, Alwarpet", latitude: 13.0345, longitude: 80.2567 },
+  { id: "chennai-madras-medical-mission", name: "Madras Medical Mission", type: "hospital", city: "Chennai", address: "Mogappair, Chennai", latitude: 13.0789, longitude: 80.1789 },
+  { id: "chennai-gleneagles", name: "Gleneagles Global Health City", type: "hospital", city: "Chennai", address: "Perumbakkam, Chennai", latitude: 12.9123, longitude: 80.2123 },
+  { id: "chennai-sims", name: "SIMS Hospital", type: "hospital", city: "Chennai", address: "Vadapalani, Chennai", latitude: 13.0523, longitude: 80.2134 },
+  { id: "chennai-vijaya-hospital", name: "Vijaya Hospital", type: "hospital", city: "Chennai", address: "Vadapalani, Chennai", latitude: 13.0534, longitude: 80.2145 },
+  { id: "chennai-billroth", name: "Billroth Hospitals", type: "hospital", city: "Chennai", address: "Raja Annamalaipuram, Chennai", latitude: 13.0234, longitude: 80.2678 },
+  { id: "chennai-chettinad", name: "Chettinad Super Speciality Hospital", type: "hospital", city: "Chennai", address: "Rajiv Gandhi Salai, Kelambakkam", latitude: 12.8012, longitude: 80.2234 },
+  { id: "chennai-rajiv-gandhi-gh", name: "Rajiv Gandhi Government General Hospital", type: "hospital", city: "Chennai", address: "Park Town, Chennai", latitude: 13.0827, longitude: 80.2707 },
+  { id: "chennai-stanley", name: "Government Stanley Medical College Hospital", type: "hospital", city: "Chennai", address: "Royapuram, Chennai", latitude: 13.1045, longitude: 80.2891 },
+  { id: "chennai-kilpauk-medical", name: "Kilpauk Medical College Hospital", type: "hospital", city: "Chennai", address: "Poonamallee High Road, Kilpauk", latitude: 13.0812, longitude: 80.2312 },
+  { id: "chennai-omandurar", name: "Omandurar Government Estate Hospital", type: "hospital", city: "Chennai", address: "Anna Salai, Chennai", latitude: 13.0678, longitude: 80.2678 },
+  // Blood Banks
+  { id: "chennai-apollo-bb", name: "Apollo Hospitals Blood Bank", type: "blood_bank", city: "Chennai", address: "Greams Road, Chennai", latitude: 13.0608, longitude: 80.2501 },
+  { id: "chennai-red-cross", name: "Indian Red Cross Society Blood Bank", type: "blood_bank", city: "Chennai", address: "Montieth Road, Chennai", latitude: 13.0734, longitude: 80.2601 },
+  { id: "chennai-lifeline-bb", name: "Lifeline Blood Bank", type: "blood_bank", city: "Chennai", address: "Kilpauk, Chennai", latitude: 13.0789, longitude: 80.2345 },
+  { id: "chennai-miot-bb", name: "MIOT International Blood Bank", type: "blood_bank", city: "Chennai", address: "Manapakkam, Chennai", latitude: 13.0192, longitude: 80.1626 },
+  { id: "chennai-sri-ramachandra-bb", name: "Sri Ramachandra Blood Bank", type: "blood_bank", city: "Chennai", address: "Porur, Chennai", latitude: 13.0359, longitude: 80.1570 },
+  { id: "chennai-mgm-bb", name: "MGM Healthcare Blood Bank", type: "blood_bank", city: "Chennai", address: "Aminjikarai, Chennai", latitude: 13.0715, longitude: 80.2237 },
+  { id: "chennai-govt-general-bb", name: "Rajiv Gandhi GH Blood Bank", type: "blood_bank", city: "Chennai", address: "Park Town, Chennai", latitude: 13.0830, longitude: 80.2710 },
+  { id: "chennai-stanley-bb", name: "Stanley Hospital Blood Bank", type: "blood_bank", city: "Chennai", address: "Royapuram, Chennai", latitude: 13.1048, longitude: 80.2894 },
+  { id: "chennai-rotary-bb", name: "Rotary Blood Bank Chennai", type: "blood_bank", city: "Chennai", address: "T Nagar, Chennai", latitude: 13.0412, longitude: 80.2345 },
+  { id: "chennai-jeevan-bb", name: "Jeevan Blood Bank and Research Centre", type: "blood_bank", city: "Chennai", address: "Royapettah, Chennai", latitude: 13.0512, longitude: 80.2678 },
+];
