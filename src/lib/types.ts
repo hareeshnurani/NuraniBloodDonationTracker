@@ -13,6 +13,27 @@ export type RequestStatus =
 export type InvitationResponse = "pending" | "accepted" | "rejected" | "late_accept";
 export type DonationConfirmStatus = "pending" | "donated" | "not_donated";
 
+export interface DonationConfirmation {
+  invitation_id: string;
+  status: DonationConfirmStatus;
+  donated_date: string | null;
+  not_donated_reason: string | null;
+  answered_at: string | null;
+  created_at: string;
+}
+
+export interface DonationHistoryEntry {
+  invitation_id: string;
+  status: DonationConfirmStatus;
+  donated_date: string | null;
+  not_donated_reason: string | null;
+  answered_at: string | null;
+  patient_name: string;
+  blood_group: string;
+  hospital_notes: string | null;
+  accepted_at: string | null;
+}
+
 export interface Profile {
   id: string;
   email: string;

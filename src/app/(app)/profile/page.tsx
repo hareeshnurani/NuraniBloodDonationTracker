@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { updateDonorProfile } from "@/lib/actions/profile";
 import { Switch } from "@/components/ui/switch";
+import { DonationHistory } from "@/components/donor/donation-history";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
@@ -114,6 +115,8 @@ export default function ProfilePage() {
           />
         </div>
       </GroupedSection>
+
+      {donor && <DonationHistory />}
 
       {donor && (
         <GroupedSection title="Notification Preferences">

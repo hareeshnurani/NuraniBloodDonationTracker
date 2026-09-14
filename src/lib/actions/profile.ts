@@ -97,7 +97,8 @@ export async function updateLocation(latitude: number, longitude: number) {
 export async function confirmDonation(
   invitationId: string,
   donated: boolean,
-  donatedDate?: string
+  donatedDate?: string,
+  notDonatedReason?: string
 ) {
   const profile = await getProfile();
   if (!profile) return { error: "Not authorized" };
@@ -114,9 +115,12 @@ export async function confirmDonation(
   if (!invitation) return { error: "Invitation not found" };
 
   if (!donated) {
+    const reason = notDonatedReason?.trim();
+    if (!reason) return { error: "Please enter a reason" };
     await supabase.from("donation_confirmations").upsert({
       invitation_id: invitationId,
       status: "not_donated",
+      not_donated_reason: reason,
       answered_at: new Date().toISOString(),
     });
   } else {
@@ -125,6 +129,7 @@ export async function confirmDonation(
       invitation_id: invitationId,
       status: "donated",
       donated_date: donatedDate,
+      not_donated_reason: null,
       answered_at: new Date().toISOString(),
     });
     await supabase
