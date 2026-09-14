@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { confirmDonation } from "@/lib/actions/profile";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { GroupedSection } from "@/components/ui/grouped-list";
+import { AlertTriangle } from "lucide-react";
 
 export interface PendingConfirmationItem {
   invitation_id: string;
@@ -37,14 +38,16 @@ export function PendingConfirmations({ items: initialItems }: { items: PendingCo
   if (items.length === 0) return null;
 
   return (
-    <Card className="border-amber-200 bg-amber-50">
-      <h2 className="font-semibold text-amber-900">Pending donation confirmations</h2>
-      <div className="mt-3 space-y-3">
+    <GroupedSection title="Donation Confirmations">
+      <div className="p-4 space-y-4">
+        <div className="flex items-center gap-2 text-[var(--warning)]">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          <p className="text-[13px] font-medium">Please confirm your recent donations</p>
+        </div>
         {items.map((item) => (
-          <div key={item.invitation_id} className="rounded-lg bg-white p-4">
-            <p className="text-sm text-gray-700">
-              Did you donate blood for the request &quot;{item.patient_name}&quot; which was
-              accepted by you?
+          <div key={item.invitation_id} className="rounded-[var(--radius-md)] bg-[var(--surface-secondary)] p-4">
+            <p className="text-[15px] text-[var(--label)]">
+              Did you donate blood for <strong>{item.patient_name}</strong>?
             </p>
             {showCalendar === item.invitation_id ? (
               <div className="mt-3 flex flex-wrap items-end gap-2">
@@ -63,19 +66,10 @@ export function PendingConfirmations({ items: initialItems }: { items: PendingCo
               </div>
             ) : (
               <div className="mt-3 flex gap-2">
-                <Button
-                  size="sm"
-                  onClick={() => setShowCalendar(item.invitation_id)}
-                  disabled={loading}
-                >
-                  Yes
+                <Button size="sm" onClick={() => setShowCalendar(item.invitation_id)} disabled={loading}>
+                  Yes, I donated
                 </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => handleNo(item.invitation_id)}
-                  disabled={loading}
-                >
+                <Button size="sm" variant="secondary" onClick={() => handleNo(item.invitation_id)} disabled={loading}>
                   No
                 </Button>
               </div>
@@ -83,6 +77,6 @@ export function PendingConfirmations({ items: initialItems }: { items: PendingCo
           </div>
         ))}
       </div>
-    </Card>
+    </GroupedSection>
   );
 }

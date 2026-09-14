@@ -1,7 +1,8 @@
 "use client";
 
 import { markNotificationRead } from "@/lib/actions/chat";
-import { Card } from "@/components/ui/card";
+import { GroupedRow, GroupedRowIcon } from "@/components/ui/grouped-list";
+import { Bell } from "lucide-react";
 import { format } from "date-fns";
 import type { Notification } from "@/lib/types";
 
@@ -15,19 +16,26 @@ export function NotificationItem({ notification }: { notification: Notification 
   }
 
   return (
-    <Card
-      className={isUnread ? "border-red-200 bg-red-50/50" : ""}
-      onClick={handleClick}
-    >
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="font-medium text-gray-900">{notification.title}</p>
-          <p className="mt-1 text-sm text-gray-600">{notification.body}</p>
+    <GroupedRow onClick={handleClick}>
+      <GroupedRowIcon color={isUnread ? "red" : "gray"}>
+        <Bell className="h-4 w-4" />
+      </GroupedRowIcon>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-3">
+          <p className={`text-[15px] ${isUnread ? "font-semibold text-[var(--label)]" : "font-medium text-[var(--label-secondary)]"}`}>
+            {notification.title}
+          </p>
+          <time className="shrink-0 text-[12px] text-[var(--label-tertiary)]">
+            {format(new Date(notification.created_at), "MMM d, h:mm a")}
+          </time>
         </div>
-        <time className="shrink-0 text-xs text-gray-400">
-          {format(new Date(notification.created_at), "MMM d, h:mm a")}
-        </time>
+        <p className="text-[13px] text-[var(--label-secondary)] mt-0.5 leading-relaxed">
+          {notification.body}
+        </p>
       </div>
-    </Card>
+      {isUnread && (
+        <div className="h-2 w-2 shrink-0 rounded-full bg-[var(--accent)]" />
+      )}
+    </GroupedRow>
   );
 }

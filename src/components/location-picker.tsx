@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { MapPin } from "lucide-react";
+import { MapPin, CheckCircle2 } from "lucide-react";
 
 interface LocationPickerProps {
   onLocation: (lat: number, lng: number) => void;
@@ -49,17 +49,20 @@ export function LocationPicker({ onLocation, defaultLat, defaultLng }: LocationP
 
   return (
     <div className="space-y-3">
-      <Button type="button" variant="secondary" onClick={detectLocation} disabled={loading}>
+      <Button type="button" variant="tinted" onClick={detectLocation} disabled={loading}>
         <MapPin className="mr-2 h-4 w-4" />
         {loading ? "Detecting..." : "Use my current location"}
       </Button>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && (
+        <p className="text-[13px] text-[var(--accent)]">{error}</p>
+      )}
       <input type="hidden" name="latitude" value={lat} required />
       <input type="hidden" name="longitude" value={lng} required />
       {lat && lng && (
-        <p className="text-xs text-gray-500">
+        <div className="flex items-center gap-2 text-[13px] text-[var(--success)]">
+          <CheckCircle2 className="h-4 w-4" />
           Location set: {parseFloat(lat).toFixed(4)}, {parseFloat(lng).toFixed(4)}
-        </p>
+        </div>
       )}
     </div>
   );

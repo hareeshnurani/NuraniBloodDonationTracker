@@ -1,13 +1,15 @@
 import Link from "next/link";
 import { requireActiveProfile, getDonorProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { Card, Badge } from "@/components/ui/card";
+import { Badge } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { PageHeader, SectionHeader, EmptyState } from "@/components/ui/page-header";
+import { GroupedSection, GroupedRow, GroupedRowIcon } from "@/components/ui/grouped-list";
 import { DonorAvailabilityToggle } from "@/components/donor/availability-toggle";
 import { PendingConfirmations } from "@/components/donor/pending-confirmations";
 import { REQUEST_STATUS_LABELS, PRIORITY_LABELS } from "@/lib/constants";
 import { formatDistance, getEligibleDate, isDonorEligible } from "@/lib/utils";
-import { Droplets, Plus, AlertCircle } from "lucide-react";
+import { Droplets, Plus, AlertCircle, Heart, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 
 export default async function HomePage() {
@@ -52,87 +54,111 @@ export default async function HomePage() {
     ? isDonorEligible(donorProfile.last_donation_date)
     : false;
 
+  const firstName = profile.name.split(" ")[0];
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Hello, {profile.name}</h1>
-          <p className="text-sm text-gray-500">Blood donation request management</p>
-        </div>
-        <Link href="/requests/new">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            New request
-          </Button>
-        </Link>
-      </div>
+    <div className="space-y-8">
+      <PageHeader
+        title={`Hello, ${firstName}`}
+        subtitle="Your blood donation dashboard"
+        action={
+          <Link href="/requests/new">
+            <Button>
+              <Plus className="mr-1.5 h-4 w-4" />
+              New request
+            </Button>
+          </Link>
+        }
+      />
 
       {donorProfile && (
-        <Card>
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <h2 className="font-semibold text-gray-900">Donor status</h2>
-              <p className="text-sm text-gray-500">
-                Blood group: <strong>{donorProfile.blood_group}</strong>
-                {!eligible && donorProfile.last_donation_date && (
-                  <span className="ml-2 text-amber-600">
-                    Eligible again on{" "}
-                    {format(getEligibleDate(donorProfile.last_donation_date), "MMM d, yyyy")}
-                  </span>
-                )}
+        <GroupedSection title="Donor Status">
+          <GroupedRow>
+            <GroupedRowIcon color="red">
+              <Droplets className="h-4 w-4" />
+            </GroupedRowIcon>
+            <div className="flex-1">
+              <p className="text-[15px] font-medium text-[var(--label)]">
+                Blood group {donorProfile.blood_group}
               </p>
+              {!eligible && donorProfile.last_donation_date && (
+                <p className="text-[13px] text-[var(--warning)] mt-0.5">
+                  Eligible again on {format(getEligibleDate(donorProfile.last_donation_date), "MMM d, yyyy")}
+                </p>
+              )}
+              {eligible && (
+                <p className="text-[13px] text-[var(--success)] mt-0.5">Eligible to donate</p>
+              )}
             </div>
             <DonorAvailabilityToggle
               isAvailable={donorProfile.is_available}
               eligible={eligible}
               hasDonationDate={!!donorProfile.last_donation_date}
             />
-          </div>
-        </Card>
+          </GroupedRow>
+        </GroupedSection>
       )}
 
       <PendingConfirmations items={confirmationItems} />
 
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-gray-900">Your active requests</h2>
+        <SectionHeader title="Active Requests" />
         {myRequests && myRequests.length > 0 ? (
-          <div className="space-y-3">
+          <GroupedSection>
             {myRequests.map((req) => (
-              <Link key={req.id} href={`/requests/${req.id}`}>
-                <Card className="transition-shadow hover:shadow-md">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{req.patient_name}</span>
-                        <Badge variant={req.priority === "emergency" ? "emergency" : "default"}>
-                          {PRIORITY_LABELS[req.priority]}
-                        </Badge>
-                        <Badge>{REQUEST_STATUS_LABELS[req.status]}</Badge>
-                      </div>
-                      <p className="mt-1 text-sm text-gray-500">
-                        {req.primary_blood_group} · {req.units_filled}/{req.units_needed} units ·
-                        Deadline: {format(new Date(req.deadline), "MMM d, h:mm a")}
-                      </p>
-                    </div>
-                    <Droplets className="h-5 w-5 text-red-400" />
+              <GroupedRow key={req.id} href={`/requests/${req.id}`} showChevron>
+                <GroupedRowIcon color="red">
+                  <Droplets className="h-4 w-4" />
+                </GroupedRowIcon>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[15px] font-medium text-[var(--label)]">{req.patient_name}</span>
+                    <Badge variant={req.priority === "emergency" ? "emergency" : "default"}>
+                      {PRIORITY_LABELS[req.priority]}
+                    </Badge>
                   </div>
-                </Card>
-              </Link>
+                  <p className="text-[13px] text-[var(--label-secondary)] mt-0.5">
+                    {req.primary_blood_group} · {req.units_filled}/{req.units_needed} units ·{" "}
+                    {REQUEST_STATUS_LABELS[req.status]}
+                  </p>
+                  <p className="text-[12px] text-[var(--label-tertiary)] mt-0.5">
+                    Deadline: {format(new Date(req.deadline), "MMM d, h:mm a")}
+                  </p>
+                </div>
+              </GroupedRow>
             ))}
-          </div>
+          </GroupedSection>
         ) : (
-          <Card className="text-center text-gray-500">
-            <AlertCircle className="mx-auto h-8 w-8 text-gray-300" />
-            <p className="mt-2">No active requests. Create one when you need blood.</p>
-          </Card>
+          <EmptyState
+            icon={<AlertCircle className="h-6 w-6" />}
+            title="No active requests"
+            description="Create a request when you need blood for a patient."
+            action={
+              <Link href="/requests/new">
+                <Button>
+                  <Plus className="mr-1.5 h-4 w-4" />
+                  Create request
+                </Button>
+              </Link>
+            }
+          />
         )}
       </section>
 
       {donorProfile && (
         <section>
-          <h2 className="mb-3 text-lg font-semibold text-gray-900">Pending donor invites</h2>
+          <SectionHeader
+            title="Pending Invites"
+            action={
+              pendingInvites && pendingInvites.length > 0 ? (
+                <Link href="/donor/invites" className="text-[15px] font-medium text-[var(--accent)] flex items-center gap-0.5">
+                  See all <ChevronRight className="h-4 w-4" />
+                </Link>
+              ) : undefined
+            }
+          />
           {pendingInvites && pendingInvites.length > 0 ? (
-            <div className="space-y-3">
+            <GroupedSection>
               {pendingInvites.map((inv) => {
                 const req = inv.blood_requests as {
                   patient_name: string;
@@ -140,37 +166,35 @@ export default async function HomePage() {
                   priority: string;
                 };
                 return (
-                  <Link key={inv.id} href={`/donor/invites/${inv.id}`}>
-                    <Card className="transition-shadow hover:shadow-md">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">{req.patient_name}</span>
-                            {inv.is_replacement_match && (
-                              <Badge variant="replacement">Replacement donor</Badge>
-                            )}
-                            <Badge variant={req.priority === "emergency" ? "emergency" : "default"}>
-                              {PRIORITY_LABELS[req.priority]}
-                            </Badge>
-                          </div>
-                          <p className="mt-1 text-sm text-gray-500">
-                            {req.primary_blood_group} · {formatDistance(inv.distance_km)} away
-                          </p>
-                        </div>
+                  <GroupedRow key={inv.id} href={`/donor/invites/${inv.id}`} showChevron>
+                    <GroupedRowIcon color="green">
+                      <Heart className="h-4 w-4" />
+                    </GroupedRowIcon>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[15px] font-medium text-[var(--label)]">{req.patient_name}</span>
+                        {inv.is_replacement_match && (
+                          <Badge variant="replacement">Replacement</Badge>
+                        )}
+                        <Badge variant={req.priority === "emergency" ? "emergency" : "default"}>
+                          {PRIORITY_LABELS[req.priority]}
+                        </Badge>
                       </div>
-                    </Card>
-                  </Link>
+                      <p className="text-[13px] text-[var(--label-secondary)] mt-0.5">
+                        {req.primary_blood_group} · {formatDistance(inv.distance_km)} away
+                      </p>
+                    </div>
+                  </GroupedRow>
                 );
               })}
-            </div>
+            </GroupedSection>
           ) : (
-            <Card className="text-center text-gray-500">
-              <p>No pending invites. Make sure your availability is turned on.</p>
-            </Card>
+            <EmptyState
+              icon={<Heart className="h-6 w-6" />}
+              title="No pending invites"
+              description="Turn on your availability to receive donation requests from nearby patients."
+            />
           )}
-          <Link href="/donor/invites" className="mt-2 inline-block text-sm text-red-600 hover:underline">
-            View all invites
-          </Link>
         </section>
       )}
     </div>

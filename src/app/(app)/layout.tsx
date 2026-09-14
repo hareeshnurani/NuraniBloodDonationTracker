@@ -5,9 +5,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const { profile } = await requireActiveProfile();
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[var(--background)]">
       <AppNav isAdmin={profile.role === "admin"} />
-      <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
+      <main className="mx-auto max-w-5xl px-5 py-6 pb-24 md:pb-8 animate-fade-in">
+        {children}
+      </main>
     </div>
   );
 }

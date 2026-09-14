@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { sendMessage } from "@/lib/actions/chat";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
+import { Send } from "lucide-react";
 import type { ChatMessage } from "@/lib/types";
 
 export function ChatBox({
@@ -30,40 +30,56 @@ export function ChatBox({
   }
 
   return (
-    <div className="flex h-[500px] flex-col rounded-xl border border-gray-200 bg-white">
-      <div className="flex-1 space-y-3 overflow-y-auto p-4">
+    <div className="flex h-[calc(100vh-200px)] min-h-[500px] flex-col rounded-[var(--radius-xl)] bg-[var(--surface)] shadow-[var(--shadow-md)] overflow-hidden">
+      <div className="flex-1 space-y-2 overflow-y-auto p-4">
         {messages.length === 0 ? (
-          <p className="text-center text-sm text-gray-400">No messages yet. Start the conversation.</p>
+          <div className="flex h-full items-center justify-center">
+            <p className="text-[15px] text-[var(--label-tertiary)]">No messages yet. Start the conversation.</p>
+          </div>
         ) : (
-          messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex ${msg.sender_id === currentUserId ? "justify-end" : "justify-start"}`}
-            >
+          messages.map((msg) => {
+            const isOwn = msg.sender_id === currentUserId;
+            return (
               <div
-                className={`max-w-[75%] rounded-lg px-3 py-2 text-sm ${
-                  msg.sender_id === currentUserId
-                    ? "bg-red-600 text-white"
-                    : "bg-gray-100 text-gray-900"
-                }`}
+                key={msg.id}
+                className={`flex ${isOwn ? "justify-end" : "justify-start"}`}
               >
-                <p>{msg.body}</p>
-                <time className="mt-1 block text-xs opacity-70">
-                  {format(new Date(msg.created_at), "h:mm a")}
-                </time>
+                <div
+                  className={`max-w-[75%] px-4 py-2.5 ${
+                    isOwn
+                      ? "bg-[var(--accent)] text-white rounded-[20px] rounded-br-[6px]"
+                      : "bg-[var(--surface-secondary)] text-[var(--label)] rounded-[20px] rounded-bl-[6px]"
+                  }`}
+                >
+                  <p className="text-[15px] leading-relaxed">{msg.body}</p>
+                  <time className={`mt-1 block text-[11px] ${isOwn ? "text-white/60" : "text-[var(--label-tertiary)]"}`}>
+                    {format(new Date(msg.created_at), "h:mm a")}
+                  </time>
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
-      <form onSubmit={handleSend} className="flex gap-2 border-t border-gray-100 p-4">
-        <Input
+
+      <form
+        onSubmit={handleSend}
+        className="flex items-center gap-2 border-t border-[var(--separator)] bg-[var(--surface-secondary)] p-3"
+      >
+        <input
           value={body}
           onChange={(e) => setBody(e.target.value)}
-          placeholder="Type a message..."
+          placeholder="Message"
           disabled={loading}
+          className="flex-1 rounded-full bg-[var(--surface)] px-4 py-2.5 text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 transition-all"
         />
-        <Button type="submit" disabled={loading || !body.trim()}>Send</Button>
+        <button
+          type="submit"
+          disabled={loading || !body.trim()}
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-white transition-all hover:bg-[var(--accent-hover)] active:scale-95 disabled:opacity-40 disabled:active:scale-100"
+        >
+          <Send className="h-4 w-4" />
+        </button>
       </form>
     </div>
   );
