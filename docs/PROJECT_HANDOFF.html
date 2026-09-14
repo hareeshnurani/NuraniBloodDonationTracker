@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>BloodLink Project Handoff</title>
+  <style>
+    @page { margin: 18mm 16mm; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 11pt;
+      line-height: 1.5;
+      color: #1d1d1f;
+      max-width: 100%;
+    }
+    h1 { font-size: 22pt; margin-top: 0; border-bottom: 2px solid #e11d48; padding-bottom: 8px; }
+    h2 { font-size: 15pt; margin-top: 24px; color: #e11d48; page-break-after: avoid; }
+    h3 { font-size: 12pt; margin-top: 16px; page-break-after: avoid; }
+    h4 { font-size: 11pt; margin-top: 12px; }
+    p, li { orphans: 3; widows: 3; }
+    code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 9pt; }
+    pre {
+      background: #f5f5f7;
+      padding: 10px 12px;
+      border-radius: 6px;
+      overflow-wrap: break-word;
+      white-space: pre-wrap;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0;
+      font-size: 10pt;
+      page-break-inside: avoid;
+    }
+    th, td {
+      border: 1px solid #d2d2d7;
+      padding: 6px 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: #f5f5f7; font-weight: 600; }
+    blockquote {
+      border-left: 4px solid #e11d48;
+      margin: 12px 0;
+      padding: 8px 14px;
+      background: #fff1f2;
+      color: #444;
+    }
+    ul, ol { padding-left: 20px; }
+    hr { border: none; border-top: 1px solid #d2d2d7; margin: 20px 0; }
+    a { color: #e11d48; word-break: break-all; }
+  </style>
+</head>
+<body><h1>BloodLink — Project Handoff &amp; AI Context Guide</h1>
+<blockquote>
+<p><strong>Purpose:</strong> Read this file at the start of any new Cursor / AI session before making changes.
+This document captures product decisions, architecture, migration state, and how the app should evolve.</p>
+</blockquote>
+<p><strong>Repository:</strong> <a href="https://github.com/sridushiva-dev/NuraniBloodDonationTracker">https://github.com/sridushiva-dev/NuraniBloodDonationTracker</a><br><strong>App name:</strong> BloodLink<br><strong>Last updated:</strong> September 2026</p>
+<hr>
+<h2>1. What This App Is</h2>
+<p>BloodLink is a <strong>blood donation request management platform</strong> for India. Users can:</p>
+<ul>
+<li><strong>Request blood</strong> for a patient (hospital/blood bank location, blood group, units, deadline)</li>
+<li><strong>Donate</strong> when matched by blood group, eligibility, and location/community rules</li>
+<li><strong>Join communities</strong> (groups like colleges, neighborhoods, organizations) to share and respond to requests</li>
+<li><strong>Chat in-app</strong> after a donor accepts (no phone numbers exposed)</li>
+</ul>
+<p>The product owner is building this for real-world use (Palakkad / Kerala focus initially, with hospitals across 8 cities).</p>
+<hr>
+<h2>2. Tech Stack</h2>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Technology</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Framework</td>
+<td><strong>Next.js 16</strong> (App Router) — read <code>node_modules/next/dist/docs/</code> before changing Next APIs; this version has breaking changes vs training data</td>
+</tr>
+<tr>
+<td>UI</td>
+<td>React 19, Tailwind CSS v4, Apple-inspired design system</td>
+</tr>
+<tr>
+<td>Database / Auth</td>
+<td><strong>Supabase</strong> (Postgres + RLS + Auth)</td>
+</tr>
+<tr>
+<td>Hosting</td>
+<td><strong>Vercel</strong> (recommended)</td>
+</tr>
+<tr>
+<td>Icons</td>
+<td>lucide-react</td>
+</tr>
+</tbody></table>
+<h3>Environment variables (<code>.env.local</code>)</h3>
+<pre><code>NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+NEXT_PUBLIC_APP_URL=http://localhost:3000   # or production URL
+</code></pre>
+<h3>Key Supabase clients</h3>
+<ul>
+<li><code>src/lib/supabase/server.ts</code> — user-scoped (RLS)</li>
+<li><code>src/lib/supabase/admin.ts</code> — service role (broadcasts, notifications, admin actions)</li>
+<li><code>src/lib/supabase/client.ts</code> — browser client</li>
+</ul>
+<hr>
+<h2>3. Branch &amp; Deployment State</h2>
+<table>
+<thead>
+<tr>
+<th>Branch</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>main</code></td>
+<td>Stable base: Apple UI, hospital picker, facilities, PIN code location</td>
+</tr>
+<tr>
+<td><code>cursor/communities-feature-4b23</code></td>
+<td><strong>Latest work</strong> — communities, auto-approve, donation history, RLS fix</td>
+</tr>
+</tbody></table>
+<p><strong>Before continuing development:</strong> merge <code>cursor/communities-feature-4b23</code> into <code>main</code> (or work from that branch).</p>
+<p><strong>Open PRs (may change):</strong> check GitHub for PR #5 / #6 on the communities branch.</p>
+<hr>
+<h2>4. Database Migrations — RUN IN ORDER</h2>
+<p>All migrations live in <code>supabase/migrations/</code>. Run each in the <strong>Supabase SQL Editor</strong> in numeric order:</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>File</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>001</td>
+<td><code>001_initial_schema.sql</code></td>
+<td>Core schema: profiles, donor_profiles, blood_requests, invitations, chat, notifications, RLS, <code>accept_invitation</code> RPC</td>
+</tr>
+<tr>
+<td>002</td>
+<td><code>002_fix_signup_trigger.sql</code></td>
+<td>Fix auth signup trigger</td>
+</tr>
+<tr>
+<td>003</td>
+<td><code>003_promote_hareesh_admin.sql</code></td>
+<td>Promote <code>hareesh.nurani96@gmail.com</code> to app admin</td>
+</tr>
+<tr>
+<td>004</td>
+<td><code>004_facilities_and_custom_location.sql</code></td>
+<td><code>facilities</code> table (234 hospitals), custom hospital + PIN fields on requests</td>
+</tr>
+<tr>
+<td>005</td>
+<td><code>005_communities.sql</code></td>
+<td>Communities, members, invites, request_communities, pins, <code>notify_community_only</code>, auto-approve pending users</td>
+</tr>
+<tr>
+<td>006</td>
+<td><code>006_donation_history.sql</code></td>
+<td><code>not_donated_reason</code> column on donation_confirmations</td>
+</tr>
+<tr>
+<td>007</td>
+<td><code>007_fix_rls_recursion.sql</code></td>
+<td><strong>Required</strong> — fixes <code>infinite recursion detected in policy for relation &quot;blood_requests&quot;</code> when creating requests</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ If request creation fails with RLS recursion, migration <strong>007</strong> has not been applied.</p>
+</blockquote>
+<hr>
+<h2>5. Product Rules (Confirmed by Owner)</h2>
+<h3>5.1 Users &amp; onboarding</h3>
+<ul>
+<li><strong>Anyone can sign up</strong> — no global admin approval gate</li>
+<li>Onboarding sets status to <strong><code>active</code></strong> immediately (not <code>pending_approval</code>)</li>
+<li>Community membership is <strong>optional</strong></li>
+<li>Light <strong>app admin</strong> remains: <code>hareesh.nurani96@gmail.com</code> (role <code>admin</code> in <code>profiles</code>)</li>
+</ul>
+<h3>5.2 Blood requests</h3>
+<ul>
+<li>Requester selects <strong>hospital from list</strong> (230+ facilities across 8 cities) OR <strong>custom hospital name + 6-digit PIN code</strong></li>
+<li>Donor location still uses <strong>GPS on profile/onboarding</strong></li>
+<li><strong>50 km radius</strong> for generic donor matching and generic notifications</li>
+<li>Blood group match required; optional <strong>replacement blood groups</strong></li>
+<li><strong>90-day cooldown</strong> after donation (<code>DONOR_COOLDOWN_DAYS = 90</code>)</li>
+<li><strong>First-come unit acceptance</strong> — 1 accepted donor = 1 unit (atomic <code>accept_invitation</code> RPC)</li>
+<li>In-app chat opens after donor accepts</li>
+</ul>
+<h3>5.3 Communities</h3>
+<table>
+<thead>
+<tr>
+<th>Rule</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Who can create</td>
+<td>Any active user</td>
+</tr>
+<tr>
+<td>Visibility</td>
+<td>Creator chooses <strong>public</strong> (open join) or <strong>private</strong> (invite link / admin add-by-email)</td>
+</tr>
+<tr>
+<td>Posting</td>
+<td>Requester must be a <strong>member</strong> to post to a community; can select <strong>multiple communities</strong></td>
+</tr>
+<tr>
+<td>Generic wall</td>
+<td><strong>All requests always appear on the generic request wall</strong>, regardless of communities selected</td>
+</tr>
+<tr>
+<td>Community response</td>
+<td>Any community member donor can see/respond — <strong>no distance limit</strong></td>
+</tr>
+<tr>
+<td>Notifications</td>
+<td><strong>One notification per donor per request</strong> (even if posted to multiple communities)</td>
+</tr>
+<tr>
+<td>Generic notifications</td>
+<td>Only donors within <strong>50 km</strong></td>
+</tr>
+<tr>
+<td>Community notifications</td>
+<td>All eligible community member donors (any distance)</td>
+</tr>
+<tr>
+<td>Donor preference</td>
+<td><code>notify_community_only</code> on <code>donor_profiles</code> — skips generic notifications outside their communities; <strong>still sees all requests</strong> in Active Requests list</td>
+</tr>
+<tr>
+<td>Distance popup</td>
+<td>If donor accepts a request <strong>&gt;50 km</strong> away, show confirmation: &quot;Are you sure? Location is more than 50 km away&quot;</td>
+</tr>
+<tr>
+<td>Pinning</td>
+<td>Unlimited community pins on home; <strong>long-press drag to reorder</strong></td>
+</tr>
+<tr>
+<td>Admin</td>
+<td>Community creator = default admin; can add/remove admins and members</td>
+</tr>
+</tbody></table>
+<h3>5.4 Donor donation tracking</h3>
+<ul>
+<li>After <strong>accepting</strong> a request, home shows: <strong>&quot;Have you completed the donation to [Patient name]?&quot;</strong><ul>
+<li><strong>Yes</strong> → pick date → saved as <code>last_donation_date</code>, availability turned off</li>
+<li><strong>No</strong> → must enter a <strong>reason in words</strong> (<code>not_donated_reason</code>)</li>
+</ul>
+</li>
+<li><strong>Donation history</strong> on Profile page (all past confirmations)</li>
+<li><strong>Welcome message on home:</strong><ul>
+<li>If donated: <code>You have saved N lives through your donations</code></li>
+<li>If zero donations: motivational message (never show &quot;0 lives&quot;)</li>
+</ul>
+</li>
+</ul>
+<h3>5.5 Unchanged core rules</h3>
+<ul>
+<li>Blood group matching, 90-day cooldown, first-come units, in-app chat — all unchanged from original spec</li>
+</ul>
+<hr>
+<h2>6. Architecture Overview</h2>
+<pre><code>src/
+├── app/
+│   ├── (auth)/          login, signup, verify-email
+│   ├── (app)/           protected app (requireActiveProfile)
+│   │   ├── home/        dashboard, communities feed, lives saved, donation prompts
+│   │   ├── communities/ list, create, detail, join-by-code
+│   │   ├── donor/       invites + all active requests browse
+│   │   ├── requests/    create, detail
+│   │   ├── profile/     account, donor settings, donation history
+│   │   ├── notifications/
+│   │   └── chat/
+│   ├── admin/           light app admin (users, requests, audit)
+│   └── onboarding/      profile completion
+├── components/
+│   ├── communities/     selector, pins, admin panel, join/leave
+│   ├── donor/           availability, invites, confirmations, history
+│   ├── layout/          app-nav, mobile tabs, more sheet
+│   └── ui/              Apple-style primitives (button, card, grouped-list, switch)
+├── lib/
+│   ├── actions/         server actions (requests, profile, communities, admin, chat)
+│   ├── facilities/      static hospital data per city (8 cities)
+│   ├── auth.ts          requireActiveProfile, requireAdmin
+│   ├── types.ts
+│   └── utils.ts         haversine, eligibility helpers
+└── supabase/migrations/
+</code></pre>
+<h3>Auth gating (<code>src/lib/auth.ts</code>)</h3>
+<ul>
+<li><code>requireActiveProfile()</code> — used in <code>(app)/layout.tsx</code></li>
+<li>Redirects: unverified email → <code>/verify-email</code>, incomplete → <code>/onboarding</code>, rejected → <code>/rejected</code></li>
+<li><code>pending_approval</code> redirect still exists but users are auto-approved on onboarding</li>
+</ul>
+<h3>Request broadcast (<code>src/lib/actions/requests.ts</code> → <code>broadcastRequest</code>)</h3>
+<ol>
+<li>Find eligible donors (willing, available, active, blood match, cooldown OK)</li>
+<li><strong>Generic match:</strong> within 50 km → create invitation + notify (unless <code>notify_community_only</code> and not in posted community)</li>
+<li><strong>Community match:</strong> members of posted communities at any distance → invitation + notify</li>
+<li>Deduplicate: one invitation and one notification per donor</li>
+</ol>
+<h3>Service role vs user client</h3>
+<table>
+<thead>
+<tr>
+<th>Operation</th>
+<th>Client</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>User CRUD under RLS</td>
+<td><code>createClient()</code></td>
+</tr>
+<tr>
+<td>Broadcast, notifications, audit, community linking on create</td>
+<td><code>createServiceClient()</code></td>
+</tr>
+</tbody></table>
+<hr>
+<h2>7. Database Tables (Key)</h2>
+<table>
+<thead>
+<tr>
+<th>Table</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>profiles</code></td>
+<td>User account, location, status, role</td>
+</tr>
+<tr>
+<td><code>donor_profiles</code></td>
+<td>Blood group, last donation, availability, <code>notify_community_only</code></td>
+</tr>
+<tr>
+<td><code>blood_requests</code></td>
+<td>Patient requests with location (facility or custom PIN)</td>
+</tr>
+<tr>
+<td><code>donor_invitations</code></td>
+<td>Match records with distance_km, accept/reject status</td>
+</tr>
+<tr>
+<td><code>donation_confirmations</code></td>
+<td>Post-donation yes/no + date or reason</td>
+</tr>
+<tr>
+<td><code>communities</code></td>
+<td>Groups (public/private)</td>
+</tr>
+<tr>
+<td><code>community_members</code></td>
+<td>Membership + <code>is_admin</code></td>
+</tr>
+<tr>
+<td><code>community_invites</code></td>
+<td>Invite codes for private communities</td>
+</tr>
+<tr>
+<td><code>request_communities</code></td>
+<td>Links requests to communities</td>
+</tr>
+<tr>
+<td><code>user_community_pins</code></td>
+<td>Home screen pin order</td>
+</tr>
+<tr>
+<td><code>facilities</code></td>
+<td>234 seeded hospitals/blood banks</td>
+</tr>
+<tr>
+<td><code>notifications</code></td>
+<td>In-app only (no push/email yet)</td>
+</tr>
+<tr>
+<td><code>chat_threads</code> / <code>chat_messages</code></td>
+<td>Mediated chat</td>
+</tr>
+</tbody></table>
+<h3>Important RPC</h3>
+<ul>
+<li><code>accept_invitation(p_invitation_id, p_donor_id)</code> — atomic unit allocation + chat thread creation</li>
+</ul>
+<h3>RLS helpers (SECURITY DEFINER — avoid removing)</h3>
+<ul>
+<li><code>is_admin()</code></li>
+<li><code>is_community_member()</code>, <code>is_community_admin()</code></li>
+<li><code>is_request_owner()</code>, <code>is_invited_donor()</code> — <strong>prevent blood_requests ↔ donor_invitations recursion</strong></li>
+</ul>
+<hr>
+<h2>8. Facilities / Location</h2>
+<ul>
+<li><strong>Static data:</strong> <code>src/lib/facilities/*.ts</code> (palakkad, coimbatore, kochi, chennai, bangalore, mumbai, pune, delhi)</li>
+<li><strong>DB seed:</strong> migration 004 populates <code>facilities</code> table</li>
+<li><strong>Custom location:</strong> hospital name + 6-digit PIN → <code>src/lib/pincode.ts</code> (India Post API + Nominatim geocoding)</li>
+<li><strong>Request form:</strong> <code>src/components/hospital-location-picker.tsx</code></li>
+</ul>
+<hr>
+<h2>9. UI / Navigation</h2>
+<ul>
+<li><strong>Mobile-first</strong> with bottom tab bar: Home | Donor | Alerts | Chat | More</li>
+<li><strong>Desktop</strong> nav includes Groups (communities), Profile, Admin (if admin)</li>
+<li>Design tokens in <code>src/app/globals.css</code> (iOS-inspired colors, shadows, system fonts)</li>
+<li>Reusable: <code>GroupedSection</code>, <code>GroupedRow</code>, <code>PageHeader</code>, <code>Switch</code></li>
+</ul>
+<hr>
+<h2>10. Known Issues &amp; Fixes Applied</h2>
+<table>
+<thead>
+<tr>
+<th>Issue</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Request creation: <code>infinite recursion detected in policy for relation &quot;blood_requests&quot;</code></td>
+<td>Run migration <strong>007</strong></td>
+</tr>
+<tr>
+<td>Hospital picker not visible on mobile</td>
+<td>Fixed overflow/z-index in request form</td>
+</tr>
+<tr>
+<td>Features not visible after deploy</td>
+<td>Ensure <code>main</code> is deployed / branch merged to main on Vercel</td>
+</tr>
+<tr>
+<td><code>pending_approval</code> page still exists</td>
+<td>Legacy route; new users skip it (auto-approved)</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>11. What Is NOT Built Yet (Potential Next Steps)</h2>
+<p>These were discussed or implied but not fully implemented — confirm with product owner before building:</p>
+<ul>
+<li><input disabled="" type="checkbox"> Push / email notifications (currently in-app only)</li>
+<li><input disabled="" type="checkbox"> Community feed sorting by &quot;unread since last visit&quot; (currently by active request count)</li>
+<li><input disabled="" type="checkbox"> Transfer community ownership before creator leaves</li>
+<li><input disabled="" type="checkbox"> Admin dashboard updates for community moderation</li>
+<li><input disabled="" type="checkbox"> Remove or repurpose <code>/pending-approval</code> page and admin user-approval UI (legacy)</li>
+<li><input disabled="" type="checkbox"> Merge <code>cursor/communities-feature-4b23</code> → <code>main</code> and redeploy Vercel</li>
+<li><input disabled="" type="checkbox"> <code>.env.example</code> file (referenced in README but may be missing from repo)</li>
+</ul>
+<hr>
+<h2>12. How to Start a New AI Session</h2>
+<p>Paste this into Cursor when resuming:</p>
+<pre><code>Read docs/PROJECT_HANDOFF.md in the BloodLink repo before doing anything.
+That file has the full product spec, migration order, architecture, and confirmed owner decisions.
+Current branch with latest features: cursor/communities-feature-4b23 (or main if merged).
+All Supabase migrations 001–007 must be applied in order.
+App admin: hareesh.nurani96@gmail.com
+</code></pre>
+<h3>Local dev</h3>
+<pre><code class="language-bash">npm install
+npm run dev
+# http://localhost:3000
+</code></pre>
+<h3>Verify build</h3>
+<pre><code class="language-bash">npm run build
+</code></pre>
+<hr>
+<h2>13. Owner Decisions Log (Communities Q&amp;A — September 2026)</h2>
+<ol>
+<li>Anyone can join, create requests, browse; generic posting/donating for all</li>
+<li>Any user can create a community</li>
+<li>Public = open join; private = admin add or invite links; users can leave</li>
+<li>Must be community member to post; multi-community select; always on generic wall</li>
+<li>Community members respond with no distance limit; &gt;50 km accept shows popup</li>
+<li>One notification per request; generic notify ≤50 km only; all requests visible in active list</li>
+<li>Community-only notification toggle; never hide requests</li>
+<li>Light app admin: <a href="mailto:hareesh.nurani96@gmail.com">hareesh.nurani96@gmail.com</a></li>
+<li>Existing blood rules unchanged</li>
+<li>Unlimited pinning with reorder (long-press)</li>
+<li>Auto-approve; communities not mandatory</li>
+</ol>
+<hr>
+<h2>14. File Quick Reference</h2>
+<table>
+<thead>
+<tr>
+<th>Task</th>
+<th>Start here</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Create request</td>
+<td><code>src/app/(app)/requests/new/page.tsx</code>, <code>src/lib/actions/requests.ts</code></td>
+</tr>
+<tr>
+<td>Donor matching</td>
+<td><code>broadcastRequest()</code> in <code>requests.ts</code></td>
+</tr>
+<tr>
+<td>Accept invite</td>
+<td><code>acceptInvitation()</code>, <code>accept_invitation</code> RPC</td>
+</tr>
+<tr>
+<td>Communities CRUD</td>
+<td><code>src/lib/actions/communities.ts</code></td>
+</tr>
+<tr>
+<td>Donation confirm</td>
+<td><code>src/lib/actions/profile.ts</code> → <code>confirmDonation()</code></td>
+</tr>
+<tr>
+<td>Home dashboard</td>
+<td><code>src/app/(app)/home/page.tsx</code></td>
+</tr>
+<tr>
+<td>Profile / history</td>
+<td><code>src/app/(app)/profile/page.tsx</code>, <code>src/components/donor/donation-history.tsx</code></td>
+</tr>
+<tr>
+<td>Auth gates</td>
+<td><code>src/lib/auth.ts</code></td>
+</tr>
+<tr>
+<td>Constants</td>
+<td><code>src/lib/constants.ts</code> (<code>MATCH_RADIUS_KM = 50</code>, <code>DONOR_COOLDOWN_DAYS = 90</code>)</td>
+</tr>
+<tr>
+<td>Types</td>
+<td><code>src/lib/types.ts</code></td>
+</tr>
+</tbody></table>
+<hr>
+<p><em>This document should be updated whenever major product decisions or schema changes are made.</em></p>
+</body>
+</html>
