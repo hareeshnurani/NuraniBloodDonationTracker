@@ -84,7 +84,7 @@ export default async function RequestDetailPage({
           </div>
           {request.hospital_notes && (
             <div className="sm:col-span-2">
-              <dt className="text-sm text-gray-500">Hospital / notes</dt>
+              <dt className="text-sm text-gray-500">Hospital / Blood bank</dt>
               <dd className="font-medium">{request.hospital_notes}</dd>
             </div>
           )}
