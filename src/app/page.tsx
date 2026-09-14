@@ -58,16 +58,16 @@ export default function LandingPage() {
       </header>
 
       <main>
-        <section className="mx-auto max-w-5xl px-5 pt-16 pb-20 text-center animate-fade-in">
+        <section className="mx-auto max-w-5xl px-4 sm:px-5 pt-12 sm:pt-16 pb-16 sm:pb-20 text-center animate-fade-in">
           <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-[20px] bg-[var(--accent-soft)]">
             <Droplets className="h-8 w-8 text-[var(--accent)]" />
           </div>
-          <h1 className="text-[48px] sm:text-[56px] font-bold tracking-tight text-[var(--label)] leading-[1.08]">
+          <h1 className="text-[36px] sm:text-[48px] lg:text-[56px] font-bold tracking-tight text-[var(--label)] leading-[1.08]">
             Blood donation,
             <br />
             <span className="text-[var(--accent)]">made simple.</span>
           </h1>
-          <p className="mx-auto mt-5 max-w-lg text-[19px] text-[var(--label-secondary)] leading-relaxed">
+          <p className="mx-auto mt-4 sm:mt-5 max-w-lg text-[16px] sm:text-[19px] text-[var(--label-secondary)] leading-relaxed px-2">
             Raise blood requests, get matched with nearby donors within 50 km, and coordinate
             securely — without exposing personal contact details.
           </p>

@@ -30,7 +30,7 @@ export function ChatBox({
   }
 
   return (
-    <div className="flex h-[calc(100vh-200px)] min-h-[500px] flex-col rounded-[var(--radius-xl)] bg-[var(--surface)] shadow-[var(--shadow-md)] overflow-hidden">
+    <div className="flex h-[calc(100dvh-11rem-env(safe-area-inset-bottom))] min-h-[400px] flex-col rounded-[var(--radius-xl)] bg-[var(--surface)] shadow-[var(--shadow-md)] overflow-hidden lg:h-[calc(100vh-200px)] lg:min-h-[500px]">
       <div className="flex-1 space-y-2 overflow-y-auto p-4">
         {messages.length === 0 ? (
           <div className="flex h-full items-center justify-center">

@@ -62,7 +62,7 @@ export default async function HomePage() {
         title={`Hello, ${firstName}`}
         subtitle="Your blood donation dashboard"
         action={
-          <Link href="/requests/new">
+          <Link href="/requests/new" className="hidden sm:block">
             <Button>
               <Plus className="mr-1.5 h-4 w-4" />
               New request
