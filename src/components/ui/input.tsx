@@ -4,7 +4,7 @@ export function Input({ className, ...props }: React.InputHTMLAttributes<HTMLInp
   return (
     <input
       className={cn(
-        "w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20",
+        "w-full rounded-[var(--radius-md)] bg-[var(--surface-secondary)] px-4 py-3 text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] transition-all duration-200 focus:bg-[var(--surface)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20",
         className
       )}
       {...props}
@@ -19,7 +19,7 @@ export function Textarea({
   return (
     <textarea
       className={cn(
-        "w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20",
+        "w-full rounded-[var(--radius-md)] bg-[var(--surface-secondary)] px-4 py-3 text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] transition-all duration-200 focus:bg-[var(--surface)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 resize-none",
         className
       )}
       {...props}
@@ -31,7 +31,7 @@ export function Select({ className, ...props }: React.SelectHTMLAttributes<HTMLS
   return (
     <select
       className={cn(
-        "w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20",
+        "w-full rounded-[var(--radius-md)] bg-[var(--surface-secondary)] px-4 py-3 text-[15px] text-[var(--label)] transition-all duration-200 focus:bg-[var(--surface)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 appearance-none",
         className
       )}
       {...props}
@@ -45,7 +45,13 @@ export function Label({
   ...props
 }: React.LabelHTMLAttributes<HTMLLabelElement>) {
   return (
-    <label className={cn("mb-1 block text-sm font-medium text-gray-700", className)} {...props}>
+    <label
+      className={cn(
+        "mb-1.5 block text-[13px] font-medium text-[var(--label-secondary)] uppercase tracking-wide",
+        className
+      )}
+      {...props}
+    >
       {children}
     </label>
   );

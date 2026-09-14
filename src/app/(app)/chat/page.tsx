@@ -1,7 +1,8 @@
-import Link from "next/link";
 import { requireActiveProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { Card } from "@/components/ui/card";
+import { PageHeader, EmptyState } from "@/components/ui/page-header";
+import { GroupedSection, GroupedRow, GroupedRowIcon } from "@/components/ui/grouped-list";
+import { MessageCircle } from "lucide-react";
 
 export default async function ChatListPage() {
   const { profile } = await requireActiveProfile();
@@ -15,9 +16,9 @@ export default async function ChatListPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Messages</h1>
+      <PageHeader title="Messages" subtitle="Coordinate with donors and requesters" />
       {threads && threads.length > 0 ? (
-        <div className="space-y-2">
+        <GroupedSection>
           {threads.map((t) => {
             const patientName = (t.blood_requests as { patient_name: string })?.patient_name;
             const otherName =
@@ -25,19 +26,26 @@ export default async function ChatListPage() {
                 ? (t.donor as { name: string })?.name
                 : (t.requester as { name: string })?.name;
             return (
-              <Link key={t.id} href={`/chat/${t.id}`}>
-                <Card className="transition-shadow hover:shadow-md">
-                  <p className="font-medium">{patientName}</p>
-                  <p className="text-sm text-gray-500">Chat with {otherName}</p>
-                </Card>
-              </Link>
+              <GroupedRow key={t.id} href={`/chat/${t.id}`} showChevron>
+                <GroupedRowIcon color="blue">
+                  <MessageCircle className="h-4 w-4" />
+                </GroupedRowIcon>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[15px] font-medium text-[var(--label)]">{patientName}</p>
+                  <p className="text-[13px] text-[var(--label-secondary)] mt-0.5">
+                    Chat with {otherName}
+                  </p>
+                </div>
+              </GroupedRow>
             );
           })}
-        </div>
+        </GroupedSection>
       ) : (
-        <Card className="text-center text-gray-500">
-          <p>No conversations yet. Chats open when a donor accepts your request.</p>
-        </Card>
+        <EmptyState
+          icon={<MessageCircle className="h-6 w-6" />}
+          title="No conversations yet"
+          description="Chats open when a donor accepts your request or you accept an invite."
+        />
       )}
     </div>
   );

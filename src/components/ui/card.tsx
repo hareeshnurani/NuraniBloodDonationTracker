@@ -4,14 +4,28 @@ export function Card({
   className,
   children,
   onClick,
+  variant = "default",
 }: {
   className?: string;
   children: React.ReactNode;
   onClick?: () => void;
+  variant?: "default" | "elevated" | "inset" | "tinted";
 }) {
+  const variants = {
+    default: "bg-[var(--surface)] shadow-[var(--shadow-sm)]",
+    elevated: "bg-[var(--surface)] shadow-[var(--shadow-md)]",
+    inset: "bg-[var(--surface-secondary)]",
+    tinted: "bg-[var(--accent-soft)]",
+  };
+
   return (
     <div
-      className={cn("rounded-xl border border-gray-200 bg-white p-6 shadow-sm", className)}
+      className={cn(
+        "rounded-[var(--radius-lg)] p-5 transition-all duration-200",
+        onClick && "cursor-pointer hover:shadow-[var(--shadow-md)] active:scale-[0.99]",
+        variants[variant],
+        className
+      )}
       onClick={onClick}
       role={onClick ? "button" : undefined}
     >
@@ -30,16 +44,16 @@ export function Badge({
   children: React.ReactNode;
 }) {
   const variants = {
-    default: "bg-gray-100 text-gray-700",
-    emergency: "bg-red-100 text-red-800",
-    success: "bg-green-100 text-green-800",
-    warning: "bg-amber-100 text-amber-800",
-    replacement: "bg-purple-100 text-purple-800",
+    default: "bg-[#ebebf0] text-[var(--label-secondary)]",
+    emergency: "bg-[var(--accent-soft)] text-[var(--accent)]",
+    success: "bg-[var(--success-soft)] text-[var(--success)]",
+    warning: "bg-[var(--warning-soft)] text-[var(--warning)]",
+    replacement: "bg-[var(--purple-soft)] text-[var(--purple)]",
   };
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+        "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold tracking-wide uppercase",
         variants[variant],
         className
       )}

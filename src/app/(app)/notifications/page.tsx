@@ -1,8 +1,9 @@
 import { requireActiveProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { Card } from "@/components/ui/card";
+import { PageHeader, EmptyState } from "@/components/ui/page-header";
+import { GroupedSection } from "@/components/ui/grouped-list";
 import { NotificationItem } from "@/components/notifications/notification-item";
-import { format } from "date-fns";
+import { Bell } from "lucide-react";
 
 export default async function NotificationsPage() {
   const { profile } = await requireActiveProfile();
@@ -15,19 +16,26 @@ export default async function NotificationsPage() {
     .order("created_at", { ascending: false })
     .limit(50);
 
+  const unreadCount = notifications?.filter((n) => !n.read_at).length ?? 0;
+
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Notifications</h1>
+      <PageHeader
+        title="Notifications"
+        subtitle={unreadCount > 0 ? `${unreadCount} unread` : "You're all caught up"}
+      />
       {notifications && notifications.length > 0 ? (
-        <div className="space-y-2">
+        <GroupedSection>
           {notifications.map((n) => (
             <NotificationItem key={n.id} notification={n} />
           ))}
-        </div>
+        </GroupedSection>
       ) : (
-        <Card className="text-center text-gray-500">
-          <p>No notifications yet.</p>
-        </Card>
+        <EmptyState
+          icon={<Bell className="h-6 w-6" />}
+          title="No notifications"
+          description="You'll be notified when donors respond to your requests or when new invites arrive."
+        />
       )}
     </div>
   );

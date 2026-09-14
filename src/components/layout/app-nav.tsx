@@ -11,12 +11,12 @@ import {
   User,
   Shield,
   LogOut,
+  Plus,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 const links = [
   { href: "/home", label: "Home", icon: Home },
-  { href: "/requests/new", label: "Request", icon: Droplets },
   { href: "/donor/invites", label: "Donor", icon: Droplets },
   { href: "/notifications", label: "Alerts", icon: Bell },
   { href: "/chat", label: "Chat", icon: MessageCircle },
@@ -33,66 +33,83 @@ export function AppNav({ isAdmin }: { isAdmin?: boolean }) {
   }
 
   return (
-    <header className="border-b border-gray-200 bg-white">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-        <Link href="/home" className="flex items-center gap-2 font-bold text-red-600">
-          <Droplets className="h-6 w-6" />
-          BloodLink
-        </Link>
-        <nav className="hidden items-center gap-1 md:flex">
-          {links.map(({ href, label, icon: Icon }) => (
-            <Link
-              key={href}
-              href={href}
-              className={cn(
-                "flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                pathname.startsWith(href)
-                  ? "bg-red-50 text-red-700"
-                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-              )}
-            >
-              <Icon className="h-4 w-4" />
-              {label}
-            </Link>
-          ))}
-          {isAdmin && (
-            <Link
-              href="/admin"
-              className={cn(
-                "flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium",
-                pathname.startsWith("/admin")
-                  ? "bg-red-50 text-red-700"
-                  : "text-gray-600 hover:bg-gray-50"
-              )}
-            >
-              <Shield className="h-4 w-4" />
-              Admin
-            </Link>
-          )}
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"
-          >
-            <LogOut className="h-4 w-4" />
-            Logout
-          </button>
-        </nav>
-      </div>
-      <nav className="flex overflow-x-auto border-t border-gray-100 md:hidden">
-        {links.map(({ href, label, icon: Icon }) => (
-          <Link
-            key={href}
-            href={href}
-            className={cn(
-              "flex flex-1 flex-col items-center gap-0.5 py-2 text-xs",
-              pathname.startsWith(href) ? "text-red-600" : "text-gray-500"
-            )}
-          >
-            <Icon className="h-5 w-5" />
-            {label}
+    <>
+      <header className="sticky top-0 z-50 glass border-b border-[var(--separator)]">
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-3">
+          <Link href="/home" className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-[var(--accent)] text-white">
+              <Droplets className="h-4.5 w-4.5" />
+            </div>
+            <span className="text-[17px] font-semibold text-[var(--label)]">BloodLink</span>
           </Link>
-        ))}
+
+          <nav className="hidden items-center gap-1 md:flex">
+            {links.map(({ href, label, icon: Icon }) => (
+              <Link
+                key={href}
+                href={href}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-[10px] px-3.5 py-2 text-[13px] font-medium transition-all duration-200",
+                  pathname.startsWith(href)
+                    ? "bg-[var(--accent-soft)] text-[var(--accent)]"
+                    : "text-[var(--label-secondary)] hover:bg-[var(--surface-secondary)] hover:text-[var(--label)]"
+                )}
+              >
+                <Icon className="h-4 w-4" />
+                {label}
+              </Link>
+            ))}
+            {isAdmin && (
+              <Link
+                href="/admin"
+                className={cn(
+                  "flex items-center gap-1.5 rounded-[10px] px-3.5 py-2 text-[13px] font-medium transition-all duration-200",
+                  pathname.startsWith("/admin")
+                    ? "bg-[var(--accent-soft)] text-[var(--accent)]"
+                    : "text-[var(--label-secondary)] hover:bg-[var(--surface-secondary)]"
+                )}
+              >
+                <Shield className="h-4 w-4" />
+                Admin
+              </Link>
+            )}
+            <div className="mx-1 h-5 w-px bg-[var(--separator)]" />
+            <Link href="/requests/new">
+              <button className="flex items-center gap-1.5 rounded-[10px] bg-[var(--accent)] px-3.5 py-2 text-[13px] font-medium text-white transition-all hover:bg-[var(--accent-hover)] active:scale-[0.98]">
+                <Plus className="h-4 w-4" />
+                Request
+              </button>
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-1.5 rounded-[10px] px-3 py-2 text-[13px] text-[var(--label-secondary)] transition-colors hover:bg-[var(--surface-secondary)] hover:text-[var(--label)]"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          </nav>
+        </div>
+      </header>
+
+      <nav className="fixed bottom-0 left-0 right-0 z-50 glass border-t border-[var(--separator)] pb-[env(safe-area-inset-bottom)] md:hidden">
+        <div className="flex items-stretch">
+          {links.map(({ href, label, icon: Icon }) => {
+            const active = pathname.startsWith(href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={cn(
+                  "flex flex-1 flex-col items-center gap-0.5 py-2 pt-2.5 transition-colors",
+                  active ? "text-[var(--accent)]" : "text-[var(--label-tertiary)]"
+                )}
+              >
+                <Icon className={cn("h-[22px] w-[22px]", active && "stroke-[2.5]")} />
+                <span className="text-[10px] font-medium">{label}</span>
+              </Link>
+            );
+          })}
+        </div>
       </nav>
-    </header>
+    </>
   );
 }

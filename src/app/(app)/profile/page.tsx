@@ -3,12 +3,14 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { updateDonorProfile } from "@/lib/actions/profile";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
+import { PageHeader } from "@/components/ui/page-header";
+import { GroupedSection, GroupedRow, GroupedRowIcon } from "@/components/ui/grouped-list";
 import { LocationPicker } from "@/components/location-picker";
 import { BLOOD_GROUPS } from "@/lib/constants";
 import { getEligibleDate, isDonorEligible } from "@/lib/utils";
+import { User, Mail, MapPin, Droplets, Calendar } from "lucide-react";
 import { format } from "date-fns";
 import type { Profile, DonorProfile } from "@/lib/types";
 
@@ -38,26 +40,62 @@ export default function ProfilePage() {
     const formData = new FormData(e.currentTarget);
     const result = await updateDonorProfile(formData);
     if (result.error) setMessage(result.error);
-    else setMessage("Profile updated.");
+    else setMessage("Profile updated successfully.");
     setLoading(false);
   }
 
-  if (!profile) return <p className="text-gray-500">Loading...</p>;
+  if (!profile) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
+      </div>
+    );
+  }
 
   const eligible = donor ? isDonorEligible(donor.last_donation_date) : false;
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Profile</h1>
-      <Card>
-        <h2 className="font-semibold text-gray-900">Account</h2>
-        <dl className="mt-3 space-y-2 text-sm">
-          <div><dt className="text-gray-500">Name</dt><dd className="font-medium">{profile.name}</dd></div>
-          <div><dt className="text-gray-500">Email</dt><dd className="font-medium">{profile.email}</dd></div>
-          <div><dt className="text-gray-500">Status</dt><dd className="font-medium capitalize">{profile.status.replace("_", " ")}</dd></div>
-        </dl>
-        <div className="mt-4">
-          <Label>Update location</Label>
+    <div className="mx-auto max-w-2xl space-y-8">
+      <PageHeader title="Profile" subtitle="Manage your account and donor settings" />
+
+      <GroupedSection title="Account">
+        <GroupedRow>
+          <GroupedRowIcon color="blue">
+            <User className="h-4 w-4" />
+          </GroupedRowIcon>
+          <div>
+            <p className="text-[13px] text-[var(--label-secondary)]">Name</p>
+            <p className="text-[15px] font-medium text-[var(--label)]">{profile.name}</p>
+          </div>
+        </GroupedRow>
+        <GroupedRow>
+          <GroupedRowIcon color="gray">
+            <Mail className="h-4 w-4" />
+          </GroupedRowIcon>
+          <div>
+            <p className="text-[13px] text-[var(--label-secondary)]">Email</p>
+            <p className="text-[15px] font-medium text-[var(--label)]">{profile.email}</p>
+          </div>
+        </GroupedRow>
+        <GroupedRow>
+          <GroupedRowIcon color="green">
+            <User className="h-4 w-4" />
+          </GroupedRowIcon>
+          <div>
+            <p className="text-[13px] text-[var(--label-secondary)]">Status</p>
+            <p className="text-[15px] font-medium text-[var(--label)] capitalize">
+              {profile.status.replace("_", " ")}
+            </p>
+          </div>
+        </GroupedRow>
+      </GroupedSection>
+
+      <GroupedSection title="Location" footer="Your location is used to match you with nearby donors and requests.">
+        <div className="p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <MapPin className="h-4 w-4 text-[var(--accent)]" />
+            <p className="text-[15px] font-medium text-[var(--label)]">Update location</p>
+          </div>
           <LocationPicker
             defaultLat={profile.latitude}
             defaultLng={profile.longitude}
@@ -67,13 +105,18 @@ export default function ProfilePage() {
             }}
           />
         </div>
-      </Card>
+      </GroupedSection>
+
       {donor && (
-        <Card>
-          <h2 className="font-semibold text-gray-900">Donor profile</h2>
-          <form onSubmit={handleDonorUpdate} className="mt-4 space-y-4">
+        <GroupedSection title="Donor Profile">
+          <form onSubmit={handleDonorUpdate} className="p-4 space-y-5">
             <div>
-              <Label htmlFor="blood_group">Blood group</Label>
+              <div className="flex items-center gap-2 mb-2">
+                <Droplets className="h-4 w-4 text-[var(--accent)]" />
+                <Label htmlFor="blood_group" className="!mb-0 normal-case tracking-normal text-[15px] text-[var(--label)]">
+                  Blood group
+                </Label>
+              </div>
               <Select id="blood_group" name="blood_group" defaultValue={donor.blood_group}>
                 {BLOOD_GROUPS.map((bg) => (
                   <option key={bg} value={bg}>{bg}</option>
@@ -81,7 +124,12 @@ export default function ProfilePage() {
               </Select>
             </div>
             <div>
-              <Label htmlFor="last_donation_date">Last donation date</Label>
+              <div className="flex items-center gap-2 mb-2">
+                <Calendar className="h-4 w-4 text-[var(--accent)]" />
+                <Label htmlFor="last_donation_date" className="!mb-0 normal-case tracking-normal text-[15px] text-[var(--label)]">
+                  Last donation date
+                </Label>
+              </div>
               <Input
                 id="last_donation_date"
                 name="last_donation_date"
@@ -89,17 +137,28 @@ export default function ProfilePage() {
                 defaultValue={donor.last_donation_date ?? ""}
               />
               {donor.last_donation_date && !eligible && (
-                <p className="mt-1 text-xs text-amber-600">
+                <p className="mt-2 text-[13px] text-[var(--warning)]">
                   Eligible again on {format(getEligibleDate(donor.last_donation_date), "MMM d, yyyy")}
                 </p>
               )}
+              {donor.last_donation_date && eligible && (
+                <p className="mt-2 text-[13px] text-[var(--success)]">You are eligible to donate</p>
+              )}
             </div>
-            {message && <p className="text-sm text-green-600">{message}</p>}
-            <Button type="submit" disabled={loading}>
+            {message && (
+              <div className={`rounded-[var(--radius-md)] px-4 py-3 text-[14px] ${
+                message.includes("error") || message.includes("Error")
+                  ? "bg-[var(--accent-soft)] text-[var(--accent)]"
+                  : "bg-[var(--success-soft)] text-[var(--success)]"
+              }`}>
+                {message}
+              </div>
+            )}
+            <Button type="submit" disabled={loading} className="w-full">
               {loading ? "Saving..." : "Save donor profile"}
             </Button>
           </form>
-        </Card>
+        </GroupedSection>
       )}
     </div>
   );

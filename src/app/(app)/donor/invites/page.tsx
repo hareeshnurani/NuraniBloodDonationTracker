@@ -1,9 +1,11 @@
-import Link from "next/link";
 import { requireActiveProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { Card, Badge } from "@/components/ui/card";
+import { Badge } from "@/components/ui/card";
+import { PageHeader, EmptyState } from "@/components/ui/page-header";
+import { GroupedSection, GroupedRow, GroupedRowIcon } from "@/components/ui/grouped-list";
 import { PRIORITY_LABELS } from "@/lib/constants";
 import { formatDistance } from "@/lib/utils";
+import { Heart } from "lucide-react";
 
 export default async function DonorInvitesPage() {
   const { profile } = await requireActiveProfile();
@@ -15,11 +17,16 @@ export default async function DonorInvitesPage() {
     .eq("donor_id", profile.id)
     .order("created_at", { ascending: false });
 
+  const pendingCount = invites?.filter((i) => i.response === "pending").length ?? 0;
+
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Donor invitations</h1>
+      <PageHeader
+        title="Donor Invitations"
+        subtitle={pendingCount > 0 ? `${pendingCount} pending response${pendingCount > 1 ? "s" : ""}` : "All caught up"}
+      />
       {invites && invites.length > 0 ? (
-        <div className="space-y-3">
+        <GroupedSection>
           {invites.map((inv) => {
             const req = inv.blood_requests as {
               patient_name: string;
@@ -28,33 +35,35 @@ export default async function DonorInvitesPage() {
               status: string;
             };
             return (
-              <Link key={inv.id} href={`/donor/invites/${inv.id}`}>
-                <Card className="transition-shadow hover:shadow-md">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-medium">{req.patient_name}</span>
-                        {inv.is_replacement_match && (
-                          <Badge variant="replacement">Replacement donor</Badge>
-                        )}
-                        <Badge variant={req.priority === "emergency" ? "emergency" : "default"}>
-                          {PRIORITY_LABELS[req.priority]}
-                        </Badge>
-                      </div>
-                      <p className="mt-1 text-sm text-gray-500">
-                        {req.primary_blood_group} · {formatDistance(inv.distance_km)} · {inv.response}
-                      </p>
-                    </div>
+              <GroupedRow key={inv.id} href={`/donor/invites/${inv.id}`} showChevron>
+                <GroupedRowIcon color={inv.response === "pending" ? "red" : "gray"}>
+                  <Heart className="h-4 w-4" />
+                </GroupedRowIcon>
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[15px] font-medium text-[var(--label)]">{req.patient_name}</span>
+                    {inv.is_replacement_match && (
+                      <Badge variant="replacement">Replacement</Badge>
+                    )}
+                    <Badge variant={req.priority === "emergency" ? "emergency" : "default"}>
+                      {PRIORITY_LABELS[req.priority]}
+                    </Badge>
                   </div>
-                </Card>
-              </Link>
+                  <p className="text-[13px] text-[var(--label-secondary)] mt-0.5">
+                    {req.primary_blood_group} · {formatDistance(inv.distance_km)} ·{" "}
+                    <span className="capitalize">{inv.response}</span>
+                  </p>
+                </div>
+              </GroupedRow>
             );
           })}
-        </div>
+        </GroupedSection>
       ) : (
-        <Card className="text-center text-gray-500">
-          <p>No invitations yet.</p>
-        </Card>
+        <EmptyState
+          icon={<Heart className="h-6 w-6" />}
+          title="No invitations yet"
+          description="When a patient needs blood near you, you'll receive an invitation here."
+        />
       )}
     </div>
   );
