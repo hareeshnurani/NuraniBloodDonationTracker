@@ -2,61 +2,50 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { registerUser } from "@/lib/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
-import { Droplets, Mail } from "lucide-react";
-import { authCallbackUrl } from "@/lib/app-url";
+import { Droplets } from "lucide-react";
 
 export default function SignupPage() {
+  const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError("");
-    const supabase = createClient();
-    const { error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { name },
-        emailRedirectTo: authCallbackUrl("/onboarding"),
-      },
-    });
-    if (authError) {
-      setError(authError.message);
+
+    const result = await registerUser(name, email, password);
+    if (!result.ok) {
+      setError(result.error);
       setLoading(false);
       return;
     }
-    setSuccess(true);
-    setLoading(false);
-  }
 
-  if (success) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--background)] px-5">
-        <div className="w-full max-w-[400px] text-center animate-scale-in">
-          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--success-soft)]">
-            <Mail className="h-7 w-7 text-[var(--success)]" />
-          </div>
-          <h1 className="text-[28px] font-bold tracking-tight text-[var(--label)]">Check your email</h1>
-          <p className="mt-3 text-[15px] text-[var(--label-secondary)] leading-relaxed">
-            We sent a verification link to{" "}
-            <span className="font-medium text-[var(--label)]">{email}</span>.
-            Click it to continue registration.
-          </p>
-          <Link href="/login" className="mt-6 inline-block text-[15px] font-medium text-[var(--accent)] hover:underline">
-            Back to login
-          </Link>
-        </div>
-      </div>
-    );
+    const supabase = createClient();
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password,
+    });
+
+    if (signInError) {
+      setError(
+        "Account created. Please sign in with your email and password."
+      );
+      setLoading(false);
+      router.push("/login");
+      return;
+    }
+
+    router.push("/onboarding");
+    router.refresh();
   }
 
   return (
@@ -116,6 +105,9 @@ export default function SignupPage() {
               {loading ? "Creating account..." : "Sign up"}
             </Button>
           </form>
+          <p className="mt-4 text-center text-[12px] text-[var(--label-tertiary)] leading-relaxed">
+            You&apos;ll go straight to profile setup. Email verification is off until custom SMTP is configured in Supabase.
+          </p>
         </div>
 
         <p className="mt-6 text-center text-[15px] text-[var(--label-secondary)]">
