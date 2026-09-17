@@ -65,3 +65,13 @@ Redeploy after changing env vars.
 3. Sign up with a new email → **`/onboarding`** (not “Error sending email”)
 
 If the gray note is missing, Production is still on an old build — repeat step 3 with cache off.
+
+## Agent access (optional)
+
+Cursor Cloud Agents **cannot** open your Vercel dashboard. To let an agent read deployments and redeploy via API:
+
+1. Create a token: https://vercel.com/account/tokens  
+2. Save it as Cloud Agent secret **`VERCEL_TOKEN`** (same place as `GITHUB_TOKEN`).  
+3. Ask the agent to run **`scripts/vercel-diagnose.sh`**.
+
+Optional: **`VERCEL_TEAM`** = team slug if the project is not under your personal account.
