@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { ChevronDown } from "lucide-react";
 
 export function Input({ className, ...props }: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
@@ -29,13 +30,19 @@ export function Textarea({
 
 export function Select({ className, ...props }: React.SelectHTMLAttributes<HTMLSelectElement>) {
   return (
-    <select
-      className={cn(
-        "w-full rounded-[var(--radius-md)] bg-[var(--surface-secondary)] px-4 py-3 text-[15px] text-[var(--label)] transition-all duration-200 focus:bg-[var(--surface)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 appearance-none",
-        className
-      )}
-      {...props}
-    />
+    <div className="relative w-full">
+      <select
+        className={cn(
+          "w-full cursor-pointer rounded-[var(--radius-md)] bg-[var(--surface-secondary)] py-3 pl-4 pr-10 text-[15px] text-[var(--label)] transition-all duration-200 focus:bg-[var(--surface)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 appearance-none",
+          className
+        )}
+        {...props}
+      />
+      <ChevronDown
+        className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--label-secondary)]"
+        aria-hidden
+      />
+    </div>
   );
 }
 
