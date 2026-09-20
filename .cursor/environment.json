@@ -1,0 +1,19 @@
+{
+  "name": "BloodLink",
+  "repositoryDependencies": [
+    "github.com/hareeshnurani/NuraniBloodDonationTracker"
+  ],
+  "install": "npm ci\nbash scripts/sync-env-local.sh",
+  "terminals": [
+    {
+      "name": "BloodLink dev server",
+      "command": "bash scripts/sync-env-local.sh && npm run dev -- --port 43147 --hostname 0.0.0.0"
+    }
+  ],
+  "ports": [
+    {
+      "name": "BloodLink web",
+      "port": 43147
+    }
+  ]
+}
