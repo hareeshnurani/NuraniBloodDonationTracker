@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { after } from "next/server";
 import { requireActiveProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { checkDeadlineWarnings } from "@/lib/actions/requests";
@@ -18,7 +19,9 @@ export default async function RequestDetailPage({
   const { profile } = await requireActiveProfile();
   const supabase = await createClient();
 
-  await checkDeadlineWarnings(id);
+  after(() => {
+    void checkDeadlineWarnings(id);
+  });
 
   const { data: request } = await supabase
     .from("blood_requests")
