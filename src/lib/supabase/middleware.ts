@@ -31,6 +31,18 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  await supabase.auth.getUser();
+  // Refresh session only when missing or near expiry — avoids a Supabase round-trip on every navigation.
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const nowSec = Math.floor(Date.now() / 1000);
+  const expiresAt = session?.expires_at ?? 0;
+  const shouldValidate =
+    !session || expiresAt - nowSec < 120;
+
+  if (shouldValidate) {
+    await supabase.auth.getUser();
+  }
+
   return supabaseResponse;
 }
