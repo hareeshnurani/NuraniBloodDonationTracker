@@ -2,23 +2,29 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { updateDonorProfile } from "@/lib/actions/profile";
+import { updateDonorProfile, updateLocation, updateLocationFromPincode } from "@/lib/actions/profile";
 import { Switch } from "@/components/ui/switch";
 import { DonationHistory } from "@/components/donor/donation-history";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
 import { GroupedSection, GroupedRow, GroupedRowIcon } from "@/components/ui/grouped-list";
-import { LocationPicker } from "@/components/location-picker";
+import { UserLocationEditor, type UserLocationValue } from "@/components/user-location-editor";
 import { BLOOD_GROUPS } from "@/lib/constants";
 import { getEligibleDate, isDonorEligible } from "@/lib/utils";
-import { User, Mail, MapPin, Droplets, Calendar } from "lucide-react";
+import { User, Mail, Droplets, Calendar } from "lucide-react";
 import { format } from "date-fns";
 import type { Profile, DonorProfile } from "@/lib/types";
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [donor, setDonor] = useState<DonorProfile | null>(null);
+  const [location, setLocation] = useState<UserLocationValue>({
+    latitude: null,
+    longitude: null,
+    homePincode: null,
+    locationLabel: null,
+  });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -28,7 +34,14 @@ export default function ProfilePage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       const { data: p } = await supabase.from("profiles").select("*").eq("id", user.id).single();
-      setProfile(p as Profile);
+      const prof = p as Profile;
+      setProfile(prof);
+      setLocation({
+        latitude: prof.latitude,
+        longitude: prof.longitude,
+        homePincode: prof.home_pincode ?? null,
+        locationLabel: prof.location_label ?? null,
+      });
       const { data: d } = await supabase.from("donor_profiles").select("*").eq("user_id", user.id).maybeSingle();
       setDonor(d as DonorProfile | null);
     }
@@ -99,18 +112,38 @@ export default function ProfilePage() {
         </GroupedRow>
       </GroupedSection>
 
-      <GroupedSection title="Location" footer="Your location is used to match you with nearby donors and requests.">
+      <GroupedSection
+        title="Location"
+        footer="GPS or PIN code helps match you with nearby blood requests and show distance to hospitals."
+      >
         <div className="p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <MapPin className="h-4 w-4 text-[var(--accent)]" />
-            <p className="text-[15px] font-medium text-[var(--label)]">Update location</p>
-          </div>
-          <LocationPicker
-            defaultLat={profile.latitude}
-            defaultLng={profile.longitude}
-            onLocation={async (lat, lng) => {
-              const supabase = createClient();
-              await supabase.from("profiles").update({ latitude: lat, longitude: lng }).eq("id", profile.id);
+          <UserLocationEditor
+            value={location}
+            onChange={setLocation}
+            onSaveGps={async (lat, lng) => {
+              const result = await updateLocation(lat, lng);
+              if (result.error) return { error: result.error };
+              setProfile({
+                ...profile,
+                latitude: lat,
+                longitude: lng,
+                home_pincode: null,
+                location_label: `GPS · ${lat.toFixed(2)}, ${lng.toFixed(2)}`,
+              });
+            }}
+            onSavePincode={async (pincode) => {
+              const result = await updateLocationFromPincode(pincode);
+              if (result.error) return { error: result.error };
+              if (result.data) {
+                setProfile({
+                  ...profile,
+                  latitude: result.data.latitude,
+                  longitude: result.data.longitude,
+                  home_pincode: result.data.homePincode,
+                  location_label: result.data.locationLabel,
+                });
+                return { data: result.data };
+              }
             }}
           />
         </div>

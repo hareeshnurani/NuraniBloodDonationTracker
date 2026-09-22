@@ -40,6 +40,8 @@ export interface Profile {
   name: string;
   latitude: number | null;
   longitude: number | null;
+  home_pincode: string | null;
+  location_label: string | null;
   status: UserStatus;
   role: UserRole;
   rejection_reason: string | null;

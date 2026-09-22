@@ -195,6 +195,10 @@ export async function createBloodRequest(formData: FormData) {
   const supabase = await createClient();
   const replacementGroups = formData.getAll("replacement_groups") as BloodGroup[];
   const publish = formData.get("publish") === "true";
+  const priority = formData.get("priority") as string;
+  if (!priority || !["emergency", "routine"].includes(priority)) {
+    return { error: "Please select a priority." };
+  }
 
   const locationMode = (formData.get("location_mode") as string) || "list";
   const additionalNotes = (formData.get("hospital_notes") as string)?.trim();
@@ -253,7 +257,7 @@ export async function createBloodRequest(formData: FormData) {
       patient_name: formData.get("patient_name") as string,
       primary_blood_group: formData.get("primary_blood_group") as BloodGroup,
       units_needed: parseInt(formData.get("units_needed") as string, 10),
-      priority: formData.get("priority") as string,
+      priority,
       deadline: formData.get("deadline") as string,
       accepts_replacement: formData.get("accepts_replacement") === "true",
       latitude,
@@ -626,43 +630,4 @@ export async function rejectInvitation(invitationId: string) {
   if (error) return { error: error.message };
   revalidatePath("/donor/invites");
   return { success: true };
-}
-
-/** Opens (or reuses) a chat thread for a pending invitation so donor and requester can coordinate before accept. */
-export async function ensureDonorChatThread(requestId: string) {
-  const profile = await getProfile();
-  if (!profile) return { error: "Not authorized" };
-
-  const ensured = await ensureDonorInvitation(requestId);
-  if (ensured.error || !ensured.invitationId) {
-    return { error: ensured.error ?? "Could not start conversation" };
-  }
-
-  const supabase = createServiceClient();
-  const { data: request } = await supabase
-    .from("blood_requests")
-    .select("requester_id")
-    .eq("id", requestId)
-    .single();
-
-  if (!request) return { error: "Request not found" };
-
-  const { data: thread, error } = await supabase
-    .from("chat_threads")
-    .upsert(
-      {
-        request_id: requestId,
-        requester_id: request.requester_id,
-        donor_id: profile.id,
-        status: "active",
-      },
-      { onConflict: "request_id,donor_id" }
-    )
-    .select("id")
-    .single();
-
-  if (error || !thread) return { error: error?.message ?? "Could not open chat" };
-
-  revalidatePath("/chat");
-  return { threadId: thread.id as string };
 }

@@ -4,7 +4,6 @@ import { requireActiveProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Card, Badge } from "@/components/ui/card";
 import { InviteActions } from "@/components/donor/invite-actions";
-import { DonorInviteChatButton } from "@/components/donor/invite-chat-button";
 import { PRIORITY_LABELS, REQUEST_STATUS_LABELS } from "@/lib/constants";
 import { formatDistance } from "@/lib/utils";
 import { format } from "date-fns";
@@ -28,7 +27,6 @@ export default async function InviteDetailPage({
   if (!inv) notFound();
 
   const req = inv.blood_requests as {
-    id: string;
     patient_name: string;
     primary_blood_group: string;
     priority: string;
@@ -91,8 +89,7 @@ export default async function InviteDetailPage({
           Your contact details are never shared. Coordinate through in-app chat after accepting.
         </p>
         {canRespond && (
-          <div className="mt-4 space-y-4 border-t border-gray-100 pt-4">
-            <DonorInviteChatButton requestId={req.id} />
+          <div className="mt-4 border-t border-gray-100 pt-4">
             <InviteActions invitationId={id} distanceKm={inv.distance_km} />
           </div>
         )}
