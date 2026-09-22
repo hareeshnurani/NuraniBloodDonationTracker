@@ -3,7 +3,7 @@
 Use this document to track fixing the gaps identified in the **critical product/ops review** (September 2026).  
 Check boxes as work completes: `- [ ]` → `- [x]`.
 
-**Related docs:** [PROJECT_HANDOFF.md](./PROJECT_HANDOFF.md) · [SUPABASE_SQL_TO_RUN.md](./SUPABASE_SQL_TO_RUN.md) · [SUPABASE_SMTP.md](./SUPABASE_SMTP.md)
+**Related docs:** [PROJECT_HANDOFF.md](./PROJECT_HANDOFF.md) · [SUPABASE_SQL_TO_RUN.md](./SUPABASE_SQL_TO_RUN.md) · [SUPABASE_SMTP.md](./SUPABASE_SMTP.md) · [LAUNCH_AND_SUSTAINABILITY.md](./LAUNCH_AND_SUSTAINABILITY.md)
 
 ---
 
@@ -332,6 +332,8 @@ Check boxes as work completes: `- [ ]` → `- [x]`.
 1. P0-1 → P0-5 → P0-4 → P0-3 → P0-6 → P0-2 → P0-7  
 2. P1-1 → P1-2 → P1-4 → P1-5 → P1-3 → P1-6  
 3. P2 items as pilot expands  
+
+For **how to launch**, **notifications**, and **ethical funding**, see [LAUNCH_AND_SUSTAINABILITY.md](./LAUNCH_AND_SUSTAINABILITY.md).
 
 ---
 
