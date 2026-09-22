@@ -631,3 +631,42 @@ export async function rejectInvitation(invitationId: string) {
   revalidatePath("/donor/invites");
   return { success: true };
 }
+
+/** Opens (or reuses) a chat thread for a pending invitation so donor and requester can coordinate before accept. */
+export async function ensureDonorChatThread(requestId: string) {
+  const profile = await getProfile();
+  if (!profile) return { error: "Not authorized" };
+
+  const ensured = await ensureDonorInvitation(requestId);
+  if (ensured.error || !ensured.invitationId) {
+    return { error: ensured.error ?? "Could not start conversation" };
+  }
+
+  const supabase = createServiceClient();
+  const { data: request } = await supabase
+    .from("blood_requests")
+    .select("requester_id")
+    .eq("id", requestId)
+    .single();
+
+  if (!request) return { error: "Request not found" };
+
+  const { data: thread, error } = await supabase
+    .from("chat_threads")
+    .upsert(
+      {
+        request_id: requestId,
+        requester_id: request.requester_id,
+        donor_id: profile.id,
+        status: "active",
+      },
+      { onConflict: "request_id,donor_id" }
+    )
+    .select("id")
+    .single();
+
+  if (error || !thread) return { error: error?.message ?? "Could not open chat" };
+
+  revalidatePath("/chat");
+  return { threadId: thread.id as string };
+}
