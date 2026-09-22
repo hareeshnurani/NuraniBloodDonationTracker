@@ -43,18 +43,33 @@ export default async function CommunityDetailPage({
     notFound();
   }
 
-  const { data: members } = await supabase
-    .from("community_members")
-    .select("user_id, is_admin, joined_at, profiles(name, email)")
-    .eq("community_id", id)
-    .order("joined_at", { ascending: true });
+  const [
+    { data: members, error: membersError },
+    { data: requestLinks, error: requestsError },
+  ] = await Promise.all([
+    isMember
+      ? supabase
+          .from("community_members")
+          .select("user_id, is_admin, joined_at, profiles(name, email)")
+          .eq("community_id", id)
+          .order("joined_at", { ascending: true })
+      : Promise.resolve({ data: null, error: null }),
+    supabase
+      .from("request_communities")
+      .select(
+        "request_id, blood_requests(id, status, patient_name, primary_blood_group, priority, units_filled, units_needed, deadline)"
+      )
+      .eq("community_id", id)
+      .order("created_at", { ascending: false })
+      .limit(10),
+  ]);
 
-  const { data: requestLinks } = await supabase
-    .from("request_communities")
-    .select("request_id, blood_requests(*)")
-    .eq("community_id", id)
-    .order("created_at", { ascending: false })
-    .limit(10);
+  if (membersError) {
+    console.error("community members load failed", membersError.message);
+  }
+  if (requestsError) {
+    console.error("community requests load failed", requestsError.message);
+  }
 
   const activeRequests =
     requestLinks
