@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireActiveProfile, getDonorProfile } from "@/lib/auth";
-import { profileHasLocation } from "@/components/user-location-editor";
+import { profileHasLocation } from "@/lib/profile-location";
 import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

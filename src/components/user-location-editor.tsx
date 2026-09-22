@@ -169,10 +169,3 @@ export function UserLocationEditor({
     </div>
   );
 }
-
-export function profileHasLocation(profile: {
-  latitude: number | null;
-  longitude: number | null;
-}): boolean {
-  return profile.latitude != null && profile.longitude != null;
-}
