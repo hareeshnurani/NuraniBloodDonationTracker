@@ -13,17 +13,13 @@ import { format } from "date-fns";
 export default async function DonorInvitesPage() {
   const { profile } = await requireActiveProfile();
   const supabase = await createClient();
+  const donorProfile = await getDonorProfile(profile.id);
 
-  const [{ data: invites }, donorProfile] = await Promise.all([
-    supabase
-      .from("donor_invitations")
-      .select(
-        "id, request_id, response, distance_km, is_replacement_match, blood_requests(patient_name, primary_blood_group, priority, status)"
-      )
-      .eq("donor_id", profile.id)
-      .order("created_at", { ascending: false }),
-    getDonorProfile(profile.id),
-  ]);
+  const { data: invites } = await supabase
+    .from("donor_invitations")
+    .select("*, blood_requests(*)")
+    .eq("donor_id", profile.id)
+    .order("created_at", { ascending: false });
 
   const pendingCount = invites?.filter((i) => i.response === "pending").length ?? 0;
 
@@ -50,21 +46,27 @@ export default async function DonorInvitesPage() {
   if (donorProfile?.willing_to_donate && isDonorEligible(donorProfile.last_donation_date)) {
     const { data: openRequests } = await supabase
       .from("blood_requests")
-      .select(
-        "id, patient_name, primary_blood_group, priority, units_filled, units_needed, deadline, hospital_notes, latitude, longitude, accepts_replacement, request_replacement_groups(blood_group)"
-      )
+      .select("*, request_replacement_groups(blood_group)")
       .in("status", ["open", "partially_filled"])
       .order("created_at", { ascending: false })
       .limit(50);
 
+    const { data: replacementGroups } = await supabase
+      .from("request_replacement_groups")
+      .select("request_id, blood_group");
+
+    const replacementMap = new Map<string, string[]>();
+    for (const rg of replacementGroups ?? []) {
+      const list = replacementMap.get(rg.request_id) ?? [];
+      list.push(rg.blood_group);
+      replacementMap.set(rg.request_id, list);
+    }
+
     for (const req of openRequests ?? []) {
       if (req.units_filled >= req.units_needed) continue;
 
-      const replacements =
-        (req.request_replacement_groups as { blood_group: string }[] | undefined)?.map(
-          (g) => g.blood_group
-        ) ?? [];
       const isPrimary = donorProfile.blood_group === req.primary_blood_group;
+      const replacements = replacementMap.get(req.id) ?? [];
       const isReplacement = req.accepts_replacement && replacements.includes(donorProfile.blood_group);
       if (!isPrimary && !isReplacement) continue;
 
@@ -107,7 +109,7 @@ export default async function DonorInvitesPage() {
         {invites && invites.length > 0 ? (
           <GroupedSection>
             {invites.map((inv) => {
-              const req = inv.blood_requests as unknown as {
+              const req = inv.blood_requests as {
                 patient_name: string;
                 primary_blood_group: string;
                 priority: string;

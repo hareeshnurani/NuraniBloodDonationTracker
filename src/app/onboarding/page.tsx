@@ -4,22 +4,37 @@ import { useState } from "react";
 import { completeProfile } from "@/lib/actions/profile";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
-import { LocationPicker } from "@/components/location-picker";
+import { UserLocationEditor, type UserLocationValue } from "@/components/user-location-editor";
+import { lookupPincode } from "@/lib/pincode";
 import { Switch } from "@/components/ui/switch";
 import { BLOOD_GROUPS } from "@/lib/constants";
 import { Droplets } from "lucide-react";
 
 export default function OnboardingPage() {
   const [willingToDonate, setWillingToDonate] = useState(false);
+  const [location, setLocation] = useState<UserLocationValue>({
+    latitude: null,
+    longitude: null,
+    homePincode: null,
+    locationLabel: null,
+  });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (location.latitude == null || location.longitude == null) {
+      setError("Please set your location using GPS or your 6-digit PIN code.");
+      return;
+    }
     setLoading(true);
     setError("");
     const formData = new FormData(e.currentTarget);
     formData.set("willing_to_donate", willingToDonate ? "true" : "false");
+    formData.set("latitude", String(location.latitude));
+    formData.set("longitude", String(location.longitude));
+    if (location.homePincode) formData.set("home_pincode", location.homePincode);
+    if (location.locationLabel) formData.set("location_label", location.locationLabel);
     const result = await completeProfile(formData);
     if (result.error) {
       setError(result.error);
@@ -50,7 +65,24 @@ export default function OnboardingPage() {
             </div>
             <div>
               <Label>Your location</Label>
-              <LocationPicker onLocation={() => {}} />
+              <UserLocationEditor
+                value={location}
+                onChange={setLocation}
+                onSavePincode={async (pincode) => {
+                  const result = await lookupPincode(pincode);
+                  if ("error" in result) return { error: result.error };
+                  const d = result.data;
+                  return {
+                    data: {
+                      latitude: d.latitude,
+                      longitude: d.longitude,
+                      homePincode: d.pincode,
+                      locationLabel: d.displayLocation,
+                    },
+                  };
+                }}
+                showProfileLink={false}
+              />
             </div>
 
             <div className="rounded-[var(--radius-md)] bg-[var(--surface-secondary)] p-4">

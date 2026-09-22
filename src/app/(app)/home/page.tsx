@@ -1,65 +1,45 @@
 import Link from "next/link";
 import { requireActiveProfile, getDonorProfile } from "@/lib/auth";
+import { profileHasLocation } from "@/components/user-location-editor";
 import { createClient } from "@/lib/supabase/server";
+import { Badge } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PageHeader, SectionHeader, EmptyState } from "@/components/ui/page-header";
 import { GroupedSection, GroupedRow, GroupedRowIcon } from "@/components/ui/grouped-list";
 import { DonorAvailabilityToggle } from "@/components/donor/availability-toggle";
 import { PendingConfirmations } from "@/components/donor/pending-confirmations";
 import { PinReorderList } from "@/components/communities/pin-reorder-list";
-import { RequesterActiveRequestCards } from "@/components/requests/requester-active-cards";
-import { DonorInviteCarousel } from "@/components/donor/donor-invite-carousel";
-import { getDonorHomeFeed } from "@/lib/donor-feed";
-import { getEligibleDate, isDonorEligible } from "@/lib/utils";
-import { Droplets, Plus, AlertCircle, Heart, ChevronRight, Users } from "lucide-react";
+import { REQUEST_STATUS_LABELS, PRIORITY_LABELS } from "@/lib/constants";
+import { formatDistance, getEligibleDate, isDonorEligible } from "@/lib/utils";
+import { Droplets, Plus, AlertCircle, Heart, ChevronRight, Users, MapPin } from "lucide-react";
 import { format } from "date-fns";
 
 export default async function HomePage() {
   const { profile } = await requireActiveProfile();
   const supabase = await createClient();
+  const donorProfile = await getDonorProfile(profile.id);
 
-  const [
-    donorProfile,
-    { data: myRequests },
-    { data: acceptedInvites },
-    { count: livesSaved },
-    { data: memberships },
-    { data: pins },
-  ] = await Promise.all([
-    getDonorProfile(profile.id),
-    supabase
-      .from("blood_requests")
-      .select(
-        "id, patient_name, priority, primary_blood_group, units_filled, units_needed, status, deadline"
-      )
-      .eq("requester_id", profile.id)
-      .in("status", ["open", "partially_filled", "draft"])
-      .order("created_at", { ascending: false })
-      .limit(5),
-    supabase
-      .from("donor_invitations")
-      .select("id, blood_requests(patient_name), donation_confirmations(status)")
-      .eq("donor_id", profile.id)
-      .eq("is_confirmed", true),
-    supabase
-      .from("donation_confirmations")
-      .select("invitation_id, donor_invitations!inner(donor_id)", { count: "exact", head: true })
-      .eq("status", "donated")
-      .eq("donor_invitations.donor_id", profile.id),
-    supabase
-      .from("community_members")
-      .select("community_id, communities(id, name)")
-      .eq("user_id", profile.id),
-    supabase
-      .from("user_community_pins")
-      .select("community_id, sort_order")
-      .eq("user_id", profile.id)
-      .order("sort_order", { ascending: true }),
-  ]);
+  const { data: myRequests } = await supabase
+    .from("blood_requests")
+    .select("*")
+    .eq("requester_id", profile.id)
+    .in("status", ["open", "partially_filled", "draft"])
+    .order("created_at", { ascending: false })
+    .limit(5);
 
-  const donorFeed = donorProfile
-    ? await getDonorHomeFeed(supabase, profile, donorProfile)
-    : { cards: [], matchingActiveCount: 0, pendingCount: 0 };
+  const { data: pendingInvites } = await supabase
+    .from("donor_invitations")
+    .select("*, blood_requests(*)")
+    .eq("donor_id", profile.id)
+    .eq("response", "pending")
+    .order("created_at", { ascending: false })
+    .limit(5);
+
+  const { data: acceptedInvites } = await supabase
+    .from("donor_invitations")
+    .select("id, blood_requests(patient_name), donation_confirmations(status)")
+    .eq("donor_id", profile.id)
+    .eq("is_confirmed", true);
 
   const confirmationItems =
     acceptedInvites
@@ -78,6 +58,23 @@ export default async function HomePage() {
           patient_name: req?.patient_name ?? "Patient",
         };
       }) ?? [];
+
+  const { count: livesSaved } = await supabase
+    .from("donation_confirmations")
+    .select("invitation_id, donor_invitations!inner(donor_id)", { count: "exact", head: true })
+    .eq("status", "donated")
+    .eq("donor_invitations.donor_id", profile.id);
+
+  const { data: memberships } = await supabase
+    .from("community_members")
+    .select("community_id, communities(id, name)")
+    .eq("user_id", profile.id);
+
+  const { data: pins } = await supabase
+    .from("user_community_pins")
+    .select("community_id, sort_order")
+    .eq("user_id", profile.id)
+    .order("sort_order", { ascending: true });
 
   const communityIds = memberships?.map((m) => m.community_id) ?? [];
   let communityFeed: { id: string; name: string; activeCount: number; sort_order: number; pinned: boolean }[] = [];
@@ -125,6 +122,8 @@ export default async function HomePage() {
     ? isDonorEligible(donorProfile.last_donation_date)
     : false;
 
+  const hasLocation = profileHasLocation(profile);
+
   const firstName = profile.name.split(" ")[0];
   const donatedUnits = livesSaved ?? 0;
 
@@ -169,6 +168,19 @@ export default async function HomePage() {
               )}
               {eligible && (
                 <p className="text-[13px] text-[var(--success)] mt-0.5">Eligible to donate</p>
+              )}
+              {!hasLocation && (
+                <div className="mt-2 flex items-start gap-2 rounded-[var(--radius-md)] border border-[var(--warning)]/30 bg-[var(--warning-soft,#fff8e6)] px-3 py-2">
+                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[var(--warning)]" />
+                  <p className="text-[13px] leading-snug text-[var(--label-secondary)]">
+                    <span className="font-medium text-[var(--label)]">Location not set.</span>{" "}
+                    We can&apos;t route nearby requests or show accurate distances until you add GPS or your PIN code in{" "}
+                    <Link href="/profile" className="font-medium text-[var(--accent)] hover:underline">
+                      Profile
+                    </Link>
+                    .
+                  </p>
+                </div>
               )}
             </div>
             <DonorAvailabilityToggle
@@ -220,7 +232,30 @@ export default async function HomePage() {
       <section>
         <SectionHeader title="My Active Requests" />
         {myRequests && myRequests.length > 0 ? (
-          <RequesterActiveRequestCards requests={myRequests} />
+          <GroupedSection>
+            {myRequests.map((req) => (
+              <GroupedRow key={req.id} href={`/requests/${req.id}`} showChevron>
+                <GroupedRowIcon color="red">
+                  <Droplets className="h-4 w-4" />
+                </GroupedRowIcon>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[15px] font-medium text-[var(--label)]">{req.patient_name}</span>
+                    <Badge variant={req.priority === "emergency" ? "emergency" : "default"}>
+                      {PRIORITY_LABELS[req.priority]}
+                    </Badge>
+                  </div>
+                  <p className="text-[13px] text-[var(--label-secondary)] mt-0.5">
+                    {req.primary_blood_group} · {req.units_filled}/{req.units_needed} units ·{" "}
+                    {REQUEST_STATUS_LABELS[req.status]}
+                  </p>
+                  <p className="text-[12px] text-[var(--label-tertiary)] mt-0.5">
+                    Deadline: {format(new Date(req.deadline), "MMM d, h:mm a")}
+                  </p>
+                </div>
+              </GroupedRow>
+            ))}
+          </GroupedSection>
         ) : (
           <EmptyState
             icon={<AlertCircle className="h-6 w-6" />}
@@ -239,53 +274,53 @@ export default async function HomePage() {
       </section>
 
       {donorProfile && (
-        <section className="space-y-4">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-2xl font-bold tracking-tight text-[var(--label)]">
-                  {donorProfile.blood_group} needed
-                </h2>
-                {donorFeed.matchingActiveCount > 0 && (
-                  <span className="inline-flex items-center rounded-full bg-[var(--accent)] px-2.5 py-0.5 text-[12px] font-bold text-white shadow-sm">
-                    {donorFeed.matchingActiveCount} active
-                  </span>
-                )}
-              </div>
-              <p className="mt-1 text-[14px] text-[var(--label-secondary)]">
-                {donorFeed.pendingCount > 0
-                  ? `${donorFeed.pendingCount} invitation${donorFeed.pendingCount !== 1 ? "s" : ""} waiting for you — swipe through each card`
-                  : donorFeed.matchingActiveCount > 0
-                    ? "Open requests match your blood group. Browse invites to respond."
-                    : "Turn on availability to receive requests when patients nearby need your group."}
-              </p>
-            </div>
-            <Link
-              href="/donor/invites"
-              className="text-[15px] font-medium text-[var(--accent)] flex items-center gap-0.5 shrink-0"
-            >
-              All invites <ChevronRight className="h-4 w-4" />
-            </Link>
-          </div>
-
-          {donorFeed.cards.length > 0 ? (
-            <DonorInviteCarousel cards={donorFeed.cards} />
+        <section>
+          <SectionHeader
+            title="Pending Invites"
+            action={
+              pendingInvites && pendingInvites.length > 0 ? (
+                <Link href="/donor/invites" className="text-[15px] font-medium text-[var(--accent)] flex items-center gap-0.5">
+                  See all <ChevronRight className="h-4 w-4" />
+                </Link>
+              ) : undefined
+            }
+          />
+          {pendingInvites && pendingInvites.length > 0 ? (
+            <GroupedSection>
+              {pendingInvites.map((inv) => {
+                const req = inv.blood_requests as {
+                  patient_name: string;
+                  primary_blood_group: string;
+                  priority: string;
+                };
+                return (
+                  <GroupedRow key={inv.id} href={`/donor/invites/${inv.id}`} showChevron>
+                    <GroupedRowIcon color="green">
+                      <Heart className="h-4 w-4" />
+                    </GroupedRowIcon>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[15px] font-medium text-[var(--label)]">{req.patient_name}</span>
+                        {inv.is_replacement_match && (
+                          <Badge variant="replacement">Replacement</Badge>
+                        )}
+                        <Badge variant={req.priority === "emergency" ? "emergency" : "default"}>
+                          {PRIORITY_LABELS[req.priority]}
+                        </Badge>
+                      </div>
+                      <p className="text-[13px] text-[var(--label-secondary)] mt-0.5">
+                        {req.primary_blood_group} · {formatDistance(inv.distance_km)} away
+                      </p>
+                    </div>
+                  </GroupedRow>
+                );
+              })}
+            </GroupedSection>
           ) : (
             <EmptyState
               icon={<Heart className="h-6 w-6" />}
-              title="No pending invitations"
-              description={
-                donorFeed.matchingActiveCount > 0
-                  ? "You can still browse open requests that match your blood group."
-                  : "When a request matches your profile, it will appear here as a card you can accept or decline."
-              }
-              action={
-                donorFeed.matchingActiveCount > 0 ? (
-                  <Link href="/donor/invites">
-                    <Button variant="secondary">Browse matching requests</Button>
-                  </Link>
-                ) : undefined
-              }
+              title="No pending invites"
+              description="Turn on your availability to receive donation requests from nearby patients."
             />
           )}
         </section>

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getProfile } from "@/lib/auth";
+import { lookupPincode } from "@/lib/pincode";
 import type { BloodGroup } from "@/lib/constants";
 
 export async function completeProfile(formData: FormData) {
@@ -14,8 +15,16 @@ export async function completeProfile(formData: FormData) {
 
   const willingToDonate = formData.get("willing_to_donate") === "true";
   const name = formData.get("name") as string;
-  const latitude = parseFloat(formData.get("latitude") as string);
-  const longitude = parseFloat(formData.get("longitude") as string);
+  const latitudeRaw = formData.get("latitude") as string;
+  const longitudeRaw = formData.get("longitude") as string;
+  const latitude = parseFloat(latitudeRaw);
+  const longitude = parseFloat(longitudeRaw);
+
+  if (Number.isNaN(latitude) || Number.isNaN(longitude)) {
+    return {
+      error: "Please set your location using GPS or your 6-digit PIN code before continuing.",
+    };
+  }
 
   const { error: profileError } = await supabase
     .from("profiles")
@@ -23,6 +32,10 @@ export async function completeProfile(formData: FormData) {
       name,
       latitude,
       longitude,
+      home_pincode: (formData.get("home_pincode") as string) || null,
+      location_label:
+        (formData.get("location_label") as string) ||
+        `GPS · ${latitude.toFixed(2)}, ${longitude.toFixed(2)}`,
       status: "active",
     })
     .eq("id", user.id);
@@ -86,12 +99,51 @@ export async function updateLocation(latitude: number, longitude: number) {
   const supabase = await createClient();
   const { error } = await supabase
     .from("profiles")
-    .update({ latitude, longitude })
+    .update({
+      latitude,
+      longitude,
+      home_pincode: null,
+      location_label: `GPS · ${latitude.toFixed(2)}, ${longitude.toFixed(2)}`,
+    })
     .eq("id", profile.id);
 
   if (error) return { error: error.message };
   revalidatePath("/profile");
+  revalidatePath("/home");
   return { success: true };
+}
+
+export async function updateLocationFromPincode(pincode: string) {
+  const profile = await getProfile();
+  if (!profile) return { error: "Not authorized" };
+
+  const lookup = await lookupPincode(pincode);
+  if ("error" in lookup) return { error: lookup.error };
+
+  const { data } = lookup;
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      latitude: data.latitude,
+      longitude: data.longitude,
+      home_pincode: data.pincode,
+      location_label: data.displayLocation,
+    })
+    .eq("id", profile.id);
+
+  if (error) return { error: error.message };
+  revalidatePath("/profile");
+  revalidatePath("/home");
+  return {
+    success: true,
+    data: {
+      latitude: data.latitude,
+      longitude: data.longitude,
+      homePincode: data.pincode,
+      locationLabel: data.displayLocation,
+    },
+  };
 }
 
 export async function confirmDonation(

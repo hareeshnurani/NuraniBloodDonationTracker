@@ -1,17 +1,16 @@
-import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { DonorProfile, Profile } from "@/lib/types";
 
-export const getSessionUser = cache(async () => {
+export async function getSessionUser() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   return user;
-});
+}
 
-export const getProfile = cache(async (): Promise<Profile | null> => {
+export async function getProfile(): Promise<Profile | null> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -20,9 +19,9 @@ export const getProfile = cache(async (): Promise<Profile | null> => {
 
   const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
   return data as Profile | null;
-});
+}
 
-export const getDonorProfile = cache(async (userId: string): Promise<DonorProfile | null> => {
+export async function getDonorProfile(userId: string): Promise<DonorProfile | null> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("donor_profiles")
@@ -30,7 +29,7 @@ export const getDonorProfile = cache(async (userId: string): Promise<DonorProfil
     .eq("user_id", userId)
     .maybeSingle();
   return data as DonorProfile | null;
-});
+}
 
 export async function requireAuth() {
   const user = await getSessionUser();
@@ -38,15 +37,9 @@ export async function requireAuth() {
   return user;
 }
 
-/** Single auth round-trip per request (layout + page share this cache). */
-export const requireActiveProfile = cache(async () => {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+export async function requireActiveProfile() {
+  const user = await requireAuth();
+  const profile = await getProfile();
   if (!profile) redirect("/login");
 
   if (!user.email_confirmed_at) redirect("/verify-email");
@@ -55,8 +48,8 @@ export const requireActiveProfile = cache(async () => {
   if (profile.status === "pending_approval") redirect("/pending-approval");
   if (profile.status === "rejected") redirect("/rejected");
 
-  return { user, profile: profile as Profile };
-});
+  return { user, profile };
+}
 
 export async function requireAdmin() {
   const { user, profile } = await requireActiveProfile();

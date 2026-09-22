@@ -124,7 +124,8 @@ export default function NewRequestPage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <Label htmlFor="priority">Priority</Label>
-              <Select id="priority" name="priority" required defaultValue="routine">
+              <Select id="priority" name="priority" required defaultValue="">
+                <option value="">Select</option>
                 <option value="emergency">Emergency</option>
                 <option value="routine">Routine</option>
               </Select>
