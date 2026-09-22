@@ -5,7 +5,7 @@ import { lookupPincode } from "@/lib/pincode";
 import { getEffectiveLocationState } from "@/lib/profile-location";
 import type { Profile } from "@/lib/types";
 
-/** Clears stale coords or restores PIN coords per 3-day rules. */
+/** Clears stale coords or restores PIN coords (GPS: 3h, PIN: 3 days). */
 export async function syncProfileEffectiveLocation(userId: string): Promise<void> {
   const supabase = await createClient();
   const { data: row } = await supabase.from("profiles").select("*").eq("id", userId).single();

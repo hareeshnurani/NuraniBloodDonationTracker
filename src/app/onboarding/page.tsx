@@ -72,7 +72,7 @@ export default function OnboardingPage() {
                   checked={useMyLocation}
                   onChange={setUseMyLocation}
                   label="Use my location"
-                  description="When off, use your PIN code instead (refreshed every 3 days)"
+                  description="When off, use your PIN code instead (valid for 3 days)"
                 />
               </div>
               <UserLocationEditor

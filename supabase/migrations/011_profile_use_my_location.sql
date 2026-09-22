@@ -1,4 +1,4 @@
--- Location mode: GPS ("use my location") vs PIN fallback, with 3-day freshness.
+-- Location mode: GPS refresh every 3 hours; PIN valid 3 days.
 
 ALTER TABLE profiles
   ADD COLUMN IF NOT EXISTS use_my_location BOOLEAN NOT NULL DEFAULT FALSE,

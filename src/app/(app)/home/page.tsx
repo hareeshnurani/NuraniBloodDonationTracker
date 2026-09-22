@@ -3,7 +3,7 @@ import { requireActiveProfile, getDonorProfile } from "@/lib/auth";
 import {
   getEffectiveLocationState,
   locationUnavailableMessage,
-  isLocationTimestampFresh,
+  isGpsTimestampFresh,
 } from "@/lib/profile-location";
 import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/card";
@@ -131,7 +131,7 @@ export default async function HomePage() {
   const locationState = getEffectiveLocationState(profile);
   const hasLocation = locationState.available;
   const gpsNeedsRefresh =
-    (profile.use_my_location ?? false) && !isLocationTimestampFresh(profile.gps_updated_at);
+    (profile.use_my_location ?? false) && !isGpsTimestampFresh(profile.gps_updated_at);
 
   const firstName = profile.name.split(" ")[0];
   const donatedUnits = livesSaved ?? 0;

@@ -18,7 +18,7 @@ import { GroupedSection, GroupedRow, GroupedRowIcon } from "@/components/ui/grou
 import { UserLocationEditor, type UserLocationValue } from "@/components/user-location-editor";
 import {
   getEffectiveLocationState,
-  isLocationTimestampFresh,
+  isGpsTimestampFresh,
   locationUnavailableMessage,
 } from "@/lib/profile-location";
 import { BLOOD_GROUPS } from "@/lib/constants";
@@ -94,7 +94,7 @@ export default function ProfilePage() {
   const eligible = donor ? isDonorEligible(donor.last_donation_date) : false;
   const locationState = getEffectiveLocationState(profile);
   const gpsNeedsRefresh =
-    profile.use_my_location && !isLocationTimestampFresh(profile.gps_updated_at);
+    (profile.use_my_location ?? false) && !isGpsTimestampFresh(profile.gps_updated_at);
 
   return (
     <div className="mx-auto max-w-2xl space-y-8">
@@ -139,7 +139,7 @@ export default function ProfilePage() {
 
       <GroupedSection
         title="Location"
-        footer="Turn on GPS or save a PIN code. Both refresh every 3 days for matching."
+        footer="GPS refreshes every 3 hours when on; PIN codes stay valid for 3 days."
       >
         <div className="space-y-4 p-4">
           <UseMyLocationToggle

@@ -6,7 +6,7 @@ import { Switch } from "@/components/ui/switch";
 
 type Props = {
   enabled: boolean;
-  /** When true, GPS timestamp is older than 3 days or missing while enabled. */
+  /** When true, GPS timestamp is older than 3 hours or missing while enabled. */
   needsRefresh?: boolean;
 };
 
@@ -73,7 +73,7 @@ export function UseMyLocationToggle({ enabled: initialEnabled, needsRefresh }: P
         description={
           enabled
             ? needsRefresh
-              ? "GPS refresh needed (every 3 days)"
+              ? "GPS refresh needed (every 3 hours)"
               : "GPS active for matching"
             : "Using PIN code when saved"
         }

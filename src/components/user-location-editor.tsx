@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MapPin, CheckCircle2, Navigation } from "lucide-react";
 import { isValidPincode } from "@/lib/pincode";
-import { LOCATION_TTL_DAYS } from "@/lib/profile-location";
+import { GPS_LOCATION_TTL_HOURS, PIN_LOCATION_TTL_DAYS } from "@/lib/profile-location";
 
 export type UserLocationValue = {
   latitude: number | null;
@@ -106,8 +106,8 @@ export function UserLocationEditor({
       {useMyLocation ? (
         <>
           <p className="text-[13px] text-[var(--label-secondary)]">
-            With “Use my location” on, we refresh GPS about every {LOCATION_TTL_DAYS} days for matching
-            nearby requests.
+            With “Use my location” on, we refresh GPS about every {GPS_LOCATION_TTL_HOURS} hours for
+            matching nearby requests.
           </p>
           <Button type="button" variant="tinted" onClick={detectLocation} disabled={gpsLoading}>
             <Navigation className="mr-2 h-4 w-4" />
@@ -117,8 +117,8 @@ export function UserLocationEditor({
       ) : (
         <>
           <p className="text-[13px] text-[var(--label-secondary)]">
-            GPS is off. Save a PIN code below — it stays valid for {LOCATION_TTL_DAYS} days, then you
-            need to save it again.
+            GPS is off. Save a PIN code below — it stays valid for {PIN_LOCATION_TTL_DAYS} days, then
+            you need to save it again.
           </p>
           <div className="flex gap-2">
             <Input

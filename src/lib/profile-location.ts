@@ -1,7 +1,15 @@
 import type { Profile } from "@/lib/types";
 
-export const LOCATION_TTL_DAYS = 3;
-export const LOCATION_TTL_MS = LOCATION_TTL_DAYS * 24 * 60 * 60 * 1000;
+/** GPS ("use my location") is refreshed every 3 hours. */
+export const GPS_LOCATION_TTL_HOURS = 3;
+export const GPS_LOCATION_TTL_MS = GPS_LOCATION_TTL_HOURS * 60 * 60 * 1000;
+
+/** PIN fallback stays valid for 3 days after save. */
+export const PIN_LOCATION_TTL_DAYS = 3;
+export const PIN_LOCATION_TTL_MS = PIN_LOCATION_TTL_DAYS * 24 * 60 * 60 * 1000;
+
+/** @deprecated Use PIN_LOCATION_TTL_DAYS */
+export const LOCATION_TTL_DAYS = PIN_LOCATION_TTL_DAYS;
 
 export type LocationUnavailableReason =
   | "gps_off_no_pin"
@@ -28,11 +36,24 @@ type LocationProfile = Pick<
   | "pin_updated_at"
 >;
 
-export function isLocationTimestampFresh(iso: string | null | undefined): boolean {
+function isWithinTtl(iso: string | null | undefined, ttlMs: number): boolean {
   if (!iso) return false;
   const t = new Date(iso).getTime();
   if (Number.isNaN(t)) return false;
-  return Date.now() - t < LOCATION_TTL_MS;
+  return Date.now() - t < ttlMs;
+}
+
+export function isGpsTimestampFresh(iso: string | null | undefined): boolean {
+  return isWithinTtl(iso, GPS_LOCATION_TTL_MS);
+}
+
+export function isPinTimestampFresh(iso: string | null | undefined): boolean {
+  return isWithinTtl(iso, PIN_LOCATION_TTL_MS);
+}
+
+/** @deprecated Use isGpsTimestampFresh or isPinTimestampFresh */
+export function isLocationTimestampFresh(iso: string | null | undefined): boolean {
+  return isPinTimestampFresh(iso);
 }
 
 /** Effective coords for matching and UI (does not mutate the profile row). */
@@ -40,12 +61,8 @@ export function getEffectiveLocationState(profile: LocationProfile): EffectiveLo
   const useMyLocation = profile.use_my_location ?? false;
 
   if (useMyLocation) {
-    const fresh = isLocationTimestampFresh(profile.gps_updated_at);
-    if (
-      fresh &&
-      profile.latitude != null &&
-      profile.longitude != null
-    ) {
+    const fresh = isGpsTimestampFresh(profile.gps_updated_at);
+    if (fresh && profile.latitude != null && profile.longitude != null) {
       return {
         available: true,
         latitude: profile.latitude,
@@ -73,7 +90,7 @@ export function getEffectiveLocationState(profile: LocationProfile): EffectiveLo
     };
   }
 
-  if (!isLocationTimestampFresh(profile.pin_updated_at)) {
+  if (!isPinTimestampFresh(profile.pin_updated_at)) {
     return {
       available: false,
       reason: "pin_stale",
@@ -117,11 +134,11 @@ export function locationUnavailableMessage(
 ): string {
   switch (reason) {
     case "gps_stale":
-      return `Your GPS location is older than ${LOCATION_TTL_DAYS} days. Turn on “Use my location” and refresh, or save your PIN code again.`;
+      return `Your GPS location is older than ${GPS_LOCATION_TTL_HOURS} hours. Keep “Use my location” on so we can refresh it, or save your PIN code.`;
     case "gps_pending":
       return "Turn on “Use my location” and allow GPS so we can match you to nearby requests.";
     case "pin_stale":
-      return `Your PIN location is older than ${LOCATION_TTL_DAYS} days. Save your PIN code again in Profile.`;
+      return `Your PIN location is older than ${PIN_LOCATION_TTL_DAYS} days. Save your PIN code again in Profile.`;
     case "gps_off_no_pin":
     default:
       return "Location unavailable. Turn on “Use my location” or save a 6-digit PIN code in Profile.";
