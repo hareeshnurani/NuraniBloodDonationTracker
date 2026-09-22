@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getProfile } from "@/lib/auth";
 import { lookupPincode } from "@/lib/pincode";
+import { syncProfileEffectiveLocation } from "@/lib/profile-location-sync";
 import type { BloodGroup } from "@/lib/constants";
 
 export async function completeProfile(formData: FormData) {
@@ -19,6 +20,9 @@ export async function completeProfile(formData: FormData) {
   const longitudeRaw = formData.get("longitude") as string;
   const latitude = parseFloat(latitudeRaw);
   const longitude = parseFloat(longitudeRaw);
+  const useMyLocation = formData.get("use_my_location") === "true";
+  const homePincode = (formData.get("home_pincode") as string)?.trim() || null;
+  const now = new Date().toISOString();
 
   if (Number.isNaN(latitude) || Number.isNaN(longitude)) {
     return {
@@ -32,10 +36,15 @@ export async function completeProfile(formData: FormData) {
       name,
       latitude,
       longitude,
-      home_pincode: (formData.get("home_pincode") as string) || null,
+      home_pincode: useMyLocation ? null : homePincode,
       location_label:
         (formData.get("location_label") as string) ||
-        `GPS · ${latitude.toFixed(2)}, ${longitude.toFixed(2)}`,
+        (useMyLocation
+          ? `GPS · ${latitude.toFixed(2)}, ${longitude.toFixed(2)}`
+          : null),
+      use_my_location: useMyLocation,
+      gps_updated_at: useMyLocation ? now : null,
+      pin_updated_at: !useMyLocation && homePincode ? now : null,
       status: "active",
     })
     .eq("id", user.id);
@@ -92,17 +101,59 @@ export async function updateDonorProfile(formData: FormData) {
   return { success: true };
 }
 
-export async function updateLocation(latitude: number, longitude: number) {
+export async function setUseMyLocation(enabled: boolean) {
   const profile = await getProfile();
   if (!profile) return { error: "Not authorized" };
 
   const supabase = await createClient();
+
+  if (!enabled) {
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        use_my_location: false,
+        latitude: null,
+        longitude: null,
+        gps_updated_at: null,
+      })
+      .eq("id", profile.id);
+
+    if (error) return { error: error.message };
+    await syncProfileEffectiveLocation(profile.id);
+    revalidatePath("/profile");
+    revalidatePath("/home");
+    return { success: true, needsGpsRefresh: false };
+  }
+
   const { error } = await supabase
     .from("profiles")
     .update({
+      use_my_location: true,
+      latitude: null,
+      longitude: null,
+      gps_updated_at: null,
+    })
+    .eq("id", profile.id);
+
+  if (error) return { error: error.message };
+  revalidatePath("/profile");
+  revalidatePath("/home");
+  return { success: true, needsGpsRefresh: true };
+}
+
+export async function updateGpsLocation(latitude: number, longitude: number) {
+  const profile = await getProfile();
+  if (!profile) return { error: "Not authorized" };
+
+  const supabase = await createClient();
+  const now = new Date().toISOString();
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      use_my_location: true,
       latitude,
       longitude,
-      home_pincode: null,
+      gps_updated_at: now,
       location_label: `GPS · ${latitude.toFixed(2)}, ${longitude.toFixed(2)}`,
     })
     .eq("id", profile.id);
@@ -111,6 +162,11 @@ export async function updateLocation(latitude: number, longitude: number) {
   revalidatePath("/profile");
   revalidatePath("/home");
   return { success: true };
+}
+
+/** @deprecated Prefer updateGpsLocation */
+export async function updateLocation(latitude: number, longitude: number) {
+  return updateGpsLocation(latitude, longitude);
 }
 
 export async function updateLocationFromPincode(pincode: string) {
@@ -122,13 +178,17 @@ export async function updateLocationFromPincode(pincode: string) {
 
   const { data } = lookup;
   const supabase = await createClient();
+  const now = new Date().toISOString();
   const { error } = await supabase
     .from("profiles")
     .update({
+      use_my_location: false,
       latitude: data.latitude,
       longitude: data.longitude,
       home_pincode: data.pincode,
       location_label: data.displayLocation,
+      pin_updated_at: now,
+      gps_updated_at: null,
     })
     .eq("id", profile.id);
 

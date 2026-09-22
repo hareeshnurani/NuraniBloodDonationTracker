@@ -1,12 +1,18 @@
 import Link from "next/link";
 import { requireActiveProfile, getDonorProfile } from "@/lib/auth";
-import { profileHasLocation } from "@/lib/profile-location";
+import {
+  getEffectiveLocationState,
+  locationUnavailableMessage,
+  isLocationTimestampFresh,
+} from "@/lib/profile-location";
 import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PageHeader, SectionHeader, EmptyState } from "@/components/ui/page-header";
 import { GroupedSection, GroupedRow, GroupedRowIcon } from "@/components/ui/grouped-list";
 import { DonorAvailabilityToggle } from "@/components/donor/availability-toggle";
+import { UseMyLocationToggle } from "@/components/donor/use-my-location-toggle";
+import { UseMyLocationAutoRefresh } from "@/components/donor/use-my-location-auto-refresh";
 import { PendingConfirmations } from "@/components/donor/pending-confirmations";
 import { PinReorderList } from "@/components/communities/pin-reorder-list";
 import { REQUEST_STATUS_LABELS, PRIORITY_LABELS } from "@/lib/constants";
@@ -122,7 +128,10 @@ export default async function HomePage() {
     ? isDonorEligible(donorProfile.last_donation_date)
     : false;
 
-  const hasLocation = profileHasLocation(profile);
+  const locationState = getEffectiveLocationState(profile);
+  const hasLocation = locationState.available;
+  const gpsNeedsRefresh =
+    (profile.use_my_location ?? false) && !isLocationTimestampFresh(profile.gps_updated_at);
 
   const firstName = profile.name.split(" ")[0];
   const donatedUnits = livesSaved ?? 0;
@@ -136,6 +145,10 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-8">
+      <UseMyLocationAutoRefresh
+        useMyLocation={profile.use_my_location ?? false}
+        gpsUpdatedAt={profile.gps_updated_at}
+      />
       <PageHeader
         title={`Welcome, ${firstName}`}
         subtitle={welcomeSubtitle}
@@ -173,8 +186,8 @@ export default async function HomePage() {
                 <div className="mt-2 flex items-start gap-2 rounded-[var(--radius-md)] border border-[var(--warning)]/30 bg-[var(--warning-soft,#fff8e6)] px-3 py-2">
                   <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[var(--warning)]" />
                   <p className="text-[13px] leading-snug text-[var(--label-secondary)]">
-                    <span className="font-medium text-[var(--label)]">Location not set.</span>{" "}
-                    We can&apos;t route nearby requests or show accurate distances until you add GPS or your PIN code in{" "}
+                    <span className="font-medium text-[var(--label)]">Location unavailable.</span>{" "}
+                    {locationUnavailableMessage(locationState.reason)}{" "}
                     <Link href="/profile" className="font-medium text-[var(--accent)] hover:underline">
                       Profile
                     </Link>
@@ -183,11 +196,17 @@ export default async function HomePage() {
                 </div>
               )}
             </div>
-            <DonorAvailabilityToggle
+            <div className="flex shrink-0 flex-col items-end gap-3">
+              <UseMyLocationToggle
+                enabled={profile.use_my_location ?? false}
+                needsRefresh={gpsNeedsRefresh}
+              />
+              <DonorAvailabilityToggle
               isAvailable={donorProfile.is_available}
               eligible={eligible}
               hasDonationDate={!!donorProfile.last_donation_date}
             />
+            </div>
           </GroupedRow>
         </GroupedSection>
       )}

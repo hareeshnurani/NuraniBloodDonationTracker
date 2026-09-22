@@ -2,14 +2,25 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { updateDonorProfile, updateLocation, updateLocationFromPincode } from "@/lib/actions/profile";
+import {
+  updateDonorProfile,
+  updateGpsLocation,
+  updateLocationFromPincode,
+} from "@/lib/actions/profile";
 import { Switch } from "@/components/ui/switch";
+import { UseMyLocationToggle } from "@/components/donor/use-my-location-toggle";
+import { UseMyLocationAutoRefresh } from "@/components/donor/use-my-location-auto-refresh";
 import { DonationHistory } from "@/components/donor/donation-history";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
 import { GroupedSection, GroupedRow, GroupedRowIcon } from "@/components/ui/grouped-list";
 import { UserLocationEditor, type UserLocationValue } from "@/components/user-location-editor";
+import {
+  getEffectiveLocationState,
+  isLocationTimestampFresh,
+  locationUnavailableMessage,
+} from "@/lib/profile-location";
 import { BLOOD_GROUPS } from "@/lib/constants";
 import { getEligibleDate, isDonorEligible } from "@/lib/utils";
 import { User, Mail, Droplets, Calendar } from "lucide-react";
@@ -31,7 +42,9 @@ export default function ProfilePage() {
   useEffect(() => {
     async function load() {
       const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return;
       const { data: p } = await supabase.from("profiles").select("*").eq("id", user.id).single();
       const prof = p as Profile;
@@ -42,7 +55,11 @@ export default function ProfilePage() {
         homePincode: prof.home_pincode ?? null,
         locationLabel: prof.location_label ?? null,
       });
-      const { data: d } = await supabase.from("donor_profiles").select("*").eq("user_id", user.id).maybeSingle();
+      const { data: d } = await supabase
+        .from("donor_profiles")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
       setDonor(d as DonorProfile | null);
     }
     load();
@@ -75,9 +92,17 @@ export default function ProfilePage() {
   }
 
   const eligible = donor ? isDonorEligible(donor.last_donation_date) : false;
+  const locationState = getEffectiveLocationState(profile);
+  const gpsNeedsRefresh =
+    profile.use_my_location && !isLocationTimestampFresh(profile.gps_updated_at);
 
   return (
     <div className="mx-auto max-w-2xl space-y-8">
+      <UseMyLocationAutoRefresh
+        useMyLocation={profile.use_my_location}
+        gpsUpdatedAt={profile.gps_updated_at}
+      />
+
       <PageHeader title="Profile" subtitle="Manage your account and donor settings" />
 
       <GroupedSection title="Account">
@@ -114,34 +139,32 @@ export default function ProfilePage() {
 
       <GroupedSection
         title="Location"
-        footer="GPS or PIN code helps match you with nearby blood requests and show distance to hospitals."
+        footer="Turn on GPS or save a PIN code. Both refresh every 3 days for matching."
       >
-        <div className="p-4">
+        <div className="space-y-4 p-4">
+          <UseMyLocationToggle
+            enabled={profile.use_my_location}
+            needsRefresh={gpsNeedsRefresh}
+          />
+          {!locationState.available && (
+            <p className="text-[13px] text-[var(--warning)]">
+              {locationUnavailableMessage(locationState.reason)}
+            </p>
+          )}
           <UserLocationEditor
             value={location}
+            useMyLocation={profile.use_my_location}
             onChange={setLocation}
             onSaveGps={async (lat, lng) => {
-              const result = await updateLocation(lat, lng);
+              const result = await updateGpsLocation(lat, lng);
               if (result.error) return { error: result.error };
-              setProfile({
-                ...profile,
-                latitude: lat,
-                longitude: lng,
-                home_pincode: null,
-                location_label: `GPS · ${lat.toFixed(2)}, ${lng.toFixed(2)}`,
-              });
+              window.location.reload();
             }}
             onSavePincode={async (pincode) => {
               const result = await updateLocationFromPincode(pincode);
               if (result.error) return { error: result.error };
               if (result.data) {
-                setProfile({
-                  ...profile,
-                  latitude: result.data.latitude,
-                  longitude: result.data.longitude,
-                  home_pincode: result.data.homePincode,
-                  location_label: result.data.locationLabel,
-                });
+                window.location.reload();
                 return { data: result.data };
               }
             }}

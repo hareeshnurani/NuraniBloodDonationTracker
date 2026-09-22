@@ -42,6 +42,9 @@ export interface Profile {
   longitude: number | null;
   home_pincode: string | null;
   location_label: string | null;
+  use_my_location: boolean;
+  gps_updated_at: string | null;
+  pin_updated_at: string | null;
   status: UserStatus;
   role: UserRole;
   rejection_reason: string | null;

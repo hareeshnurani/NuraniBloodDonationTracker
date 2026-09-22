@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { syncProfileEffectiveLocation } from "@/lib/profile-location-sync";
 import type { DonorProfile, Profile } from "@/lib/types";
 
 export async function getSessionUser() {
@@ -18,7 +19,11 @@ export async function getProfile(): Promise<Profile | null> {
   if (!user) return null;
 
   const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
-  return data as Profile | null;
+  if (!data) return null;
+
+  await syncProfileEffectiveLocation(user.id);
+  const { data: refreshed } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+  return (refreshed ?? data) as Profile;
 }
 
 export async function getDonorProfile(userId: string): Promise<DonorProfile | null> {

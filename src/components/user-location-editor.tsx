@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MapPin, CheckCircle2, Navigation } from "lucide-react";
 import { isValidPincode } from "@/lib/pincode";
+import { LOCATION_TTL_DAYS } from "@/lib/profile-location";
 
 export type UserLocationValue = {
   latitude: number | null;
@@ -16,6 +17,7 @@ export type UserLocationValue = {
 
 type UserLocationEditorProps = {
   value: UserLocationValue;
+  useMyLocation: boolean;
   onChange: (next: UserLocationValue) => void;
   onSaveGps?: (lat: number, lng: number) => Promise<{ error?: string } | void>;
   onSavePincode?: (pincode: string) => Promise<{ error?: string; data?: UserLocationValue } | void>;
@@ -24,6 +26,7 @@ type UserLocationEditorProps = {
 
 export function UserLocationEditor({
   value,
+  useMyLocation,
   onChange,
   onSaveGps,
   onSavePincode,
@@ -39,7 +42,7 @@ export function UserLocationEditor({
     setPinInput(value.homePincode ?? "");
   }, [value.homePincode]);
 
-  const hasLocation = value.latitude != null && value.longitude != null;
+  const hasCoords = value.latitude != null && value.longitude != null;
 
   async function detectLocation() {
     setGpsLoading(true);
@@ -57,19 +60,19 @@ export function UserLocationEditor({
         const next: UserLocationValue = {
           latitude,
           longitude,
-          homePincode: null,
+          homePincode: value.homePincode,
           locationLabel: `GPS · ${latitude.toFixed(2)}, ${longitude.toFixed(2)}`,
         };
         onChange(next);
         if (onSaveGps) {
           const result = await onSaveGps(latitude, longitude);
           if (result?.error) setError(result.error);
-          else setSavedHint("Location saved from GPS.");
+          else setSavedHint("GPS location saved.");
         }
         setGpsLoading(false);
       },
       () => {
-        setError("Could not access GPS. Enter your 6-digit PIN code below instead.");
+        setError("Could not access GPS. Check permissions or use your PIN code below.");
         setGpsLoading(false);
       }
     );
@@ -92,7 +95,7 @@ export function UserLocationEditor({
       }
       if (result?.data) {
         onChange(result.data);
-        setSavedHint("Location saved from PIN code.");
+        setSavedHint("PIN location saved.");
       }
     }
     setPinLoading(false);
@@ -100,34 +103,39 @@ export function UserLocationEditor({
 
   return (
     <div className="space-y-4">
-      <Button type="button" variant="tinted" onClick={detectLocation} disabled={gpsLoading}>
-        <Navigation className="mr-2 h-4 w-4" />
-        {gpsLoading ? "Detecting…" : "Use my current location"}
-      </Button>
-
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center" aria-hidden>
-          <div className="w-full border-t border-[var(--separator)]" />
-        </div>
-        <p className="relative mx-auto w-fit bg-[var(--surface)] px-2 text-[12px] uppercase tracking-wide text-[var(--label-tertiary)]">
-          or use PIN code
-        </p>
-      </div>
-
-      <div className="flex gap-2">
-        <Input
-          inputMode="numeric"
-          maxLength={6}
-          placeholder="6-digit PIN code"
-          value={pinInput}
-          onChange={(e) => setPinInput(e.target.value.replace(/\D/g, "").slice(0, 6))}
-          aria-label="PIN code"
-          className="flex-1"
-        />
-        <Button type="button" variant="secondary" onClick={savePincode} disabled={pinLoading}>
-          {pinLoading ? "…" : "Save"}
-        </Button>
-      </div>
+      {useMyLocation ? (
+        <>
+          <p className="text-[13px] text-[var(--label-secondary)]">
+            With “Use my location” on, we refresh GPS about every {LOCATION_TTL_DAYS} days for matching
+            nearby requests.
+          </p>
+          <Button type="button" variant="tinted" onClick={detectLocation} disabled={gpsLoading}>
+            <Navigation className="mr-2 h-4 w-4" />
+            {gpsLoading ? "Detecting…" : "Refresh GPS location"}
+          </Button>
+        </>
+      ) : (
+        <>
+          <p className="text-[13px] text-[var(--label-secondary)]">
+            GPS is off. Save a PIN code below — it stays valid for {LOCATION_TTL_DAYS} days, then you
+            need to save it again.
+          </p>
+          <div className="flex gap-2">
+            <Input
+              inputMode="numeric"
+              maxLength={6}
+              placeholder="6-digit PIN code"
+              value={pinInput}
+              onChange={(e) => setPinInput(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              aria-label="PIN code"
+              className="flex-1"
+            />
+            <Button type="button" variant="secondary" onClick={savePincode} disabled={pinLoading}>
+              {pinLoading ? "…" : "Save PIN"}
+            </Button>
+          </div>
+        </>
+      )}
 
       {error && <p className="text-[13px] text-[var(--accent)]">{error}</p>}
       {savedHint && (
@@ -136,20 +144,20 @@ export function UserLocationEditor({
           {savedHint}
         </div>
       )}
-      {hasLocation && value.locationLabel && !savedHint && (
+      {hasCoords && value.locationLabel && !savedHint && (
         <div className="flex items-start gap-2 rounded-[var(--radius-md)] bg-[var(--surface-secondary)] px-3 py-2.5 text-[13px] text-[var(--label-secondary)]">
           <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[var(--accent)]" />
           <span>{value.locationLabel}</span>
         </div>
       )}
 
-      {!hasLocation && (
+      {!hasCoords && (
         <p className="text-[13px] leading-snug text-[var(--label-secondary)]">
-          Without a location, BloodLink cannot match you to nearby requests or calculate distance to hospitals.
+          Location unavailable for matching until GPS is refreshed or a PIN is saved.
           {showProfileLink && (
             <>
               {" "}
-              You can update this anytime in{" "}
+              Update in{" "}
               <Link href="/profile" className="font-medium text-[var(--accent)] hover:underline">
                 Profile
               </Link>
@@ -159,12 +167,18 @@ export function UserLocationEditor({
         </p>
       )}
 
-      {/* Onboarding form posts coordinates when set via parent hidden fields */}
-      {hasLocation && (
+      {hasCoords && (
         <>
           <input type="hidden" name="latitude" value={value.latitude ?? ""} />
           <input type="hidden" name="longitude" value={value.longitude ?? ""} />
         </>
+      )}
+      <input type="hidden" name="use_my_location" value={useMyLocation ? "true" : "false"} />
+      {value.homePincode && (
+        <input type="hidden" name="home_pincode" value={value.homePincode} />
+      )}
+      {value.locationLabel && (
+        <input type="hidden" name="location_label" value={value.locationLabel} />
       )}
     </div>
   );

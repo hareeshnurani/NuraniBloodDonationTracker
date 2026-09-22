@@ -12,6 +12,7 @@ import { Droplets } from "lucide-react";
 
 export default function OnboardingPage() {
   const [willingToDonate, setWillingToDonate] = useState(false);
+  const [useMyLocation, setUseMyLocation] = useState(false);
   const [location, setLocation] = useState<UserLocationValue>({
     latitude: null,
     longitude: null,
@@ -31,6 +32,7 @@ export default function OnboardingPage() {
     setError("");
     const formData = new FormData(e.currentTarget);
     formData.set("willing_to_donate", willingToDonate ? "true" : "false");
+    formData.set("use_my_location", useMyLocation ? "true" : "false");
     formData.set("latitude", String(location.latitude));
     formData.set("longitude", String(location.longitude));
     if (location.homePincode) formData.set("home_pincode", location.homePincode);
@@ -65,10 +67,29 @@ export default function OnboardingPage() {
             </div>
             <div>
               <Label>Your location</Label>
+              <div className="mb-3 rounded-[var(--radius-md)] bg-[var(--surface-secondary)] p-3">
+                <Switch
+                  checked={useMyLocation}
+                  onChange={setUseMyLocation}
+                  label="Use my location"
+                  description="When off, use your PIN code instead (refreshed every 3 days)"
+                />
+              </div>
               <UserLocationEditor
                 value={location}
+                useMyLocation={useMyLocation}
                 onChange={setLocation}
+                onSaveGps={async (lat, lng) => {
+                  setUseMyLocation(true);
+                  setLocation({
+                    latitude: lat,
+                    longitude: lng,
+                    homePincode: null,
+                    locationLabel: `GPS · ${lat.toFixed(2)}, ${lng.toFixed(2)}`,
+                  });
+                }}
                 onSavePincode={async (pincode) => {
+                  setUseMyLocation(false);
                   const result = await lookupPincode(pincode);
                   if ("error" in result) return { error: result.error };
                   const d = result.data;
