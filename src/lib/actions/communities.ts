@@ -13,7 +13,14 @@ function generateInviteCode() {
 
 export async function createCommunity(formData: FormData) {
   const profile = await getProfile();
-  if (!profile || profile.status !== "active") return { error: "Not authorized" };
+  if (!profile || profile.status !== "active") {
+    return {
+      error:
+        profile?.status === "pending_approval"
+          ? "Your account must be approved before you can create a community."
+          : "Not authorized",
+    };
+  }
 
   const name = (formData.get("name") as string)?.trim();
   const description = (formData.get("description") as string)?.trim() || null;
@@ -35,11 +42,22 @@ export async function createCommunity(formData: FormData) {
 
   if (error) return { error: error.message };
 
-  await supabase.from("community_members").insert({
+  const service = createServiceClient();
+  const { error: memberError } = await service.from("community_members").insert({
     community_id: community.id,
     user_id: profile.id,
     is_admin: true,
   });
+
+  if (memberError) {
+    await service.from("communities").delete().eq("id", community.id);
+    return {
+      error:
+        memberError.message.includes("row-level security")
+          ? "Could not finish creating the community. Please try again or contact support."
+          : memberError.message,
+    };
+  }
 
   revalidatePath("/communities");
   revalidatePath("/home");
