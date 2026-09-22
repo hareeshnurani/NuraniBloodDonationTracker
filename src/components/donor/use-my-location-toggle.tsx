@@ -8,6 +8,8 @@ type Props = {
   enabled: boolean;
   /** When true, GPS timestamp is older than 3 hours or missing while enabled. */
   needsRefresh?: boolean;
+  /** Home donor card: short "Location" label only. */
+  variant?: "default" | "home";
 };
 
 async function captureGps(): Promise<{ lat: number; lng: number } | { error: string }> {
@@ -24,7 +26,11 @@ async function captureGps(): Promise<{ lat: number; lng: number } | { error: str
   });
 }
 
-export function UseMyLocationToggle({ enabled: initialEnabled, needsRefresh }: Props) {
+export function UseMyLocationToggle({
+  enabled: initialEnabled,
+  needsRefresh,
+  variant = "default",
+}: Props) {
   const [enabled, setEnabled] = useState(initialEnabled);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -63,19 +69,23 @@ export function UseMyLocationToggle({ enabled: initialEnabled, needsRefresh }: P
     }
   }
 
+  const isHome = variant === "home";
+
   return (
     <div className="flex flex-col items-end gap-1">
       <Switch
         checked={enabled}
         onChange={toggle}
         disabled={loading}
-        label={enabled ? "Use my location" : "Use my location off"}
+        label={isHome ? "Location" : "Use my location"}
         description={
-          enabled
-            ? needsRefresh
-              ? "GPS refresh needed (every 3 hours)"
-              : "GPS active for matching"
-            : "Using PIN code when saved"
+          isHome
+            ? undefined
+            : enabled
+              ? needsRefresh
+                ? "GPS refresh needed (every 3 hours)"
+                : "GPS active for matching"
+              : "Using PIN code when saved"
         }
       />
       {error && (

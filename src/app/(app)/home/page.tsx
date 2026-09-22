@@ -2,7 +2,6 @@ import Link from "next/link";
 import { requireActiveProfile, getDonorProfile } from "@/lib/auth";
 import {
   getEffectiveLocationState,
-  locationUnavailableMessage,
   isGpsTimestampFresh,
 } from "@/lib/profile-location";
 import { createClient } from "@/lib/supabase/server";
@@ -186,8 +185,9 @@ export default async function HomePage() {
                 <div className="mt-2 flex items-start gap-2 rounded-[var(--radius-md)] border border-[var(--warning)]/30 bg-[var(--warning-soft,#fff8e6)] px-3 py-2">
                   <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[var(--warning)]" />
                   <p className="text-[13px] leading-snug text-[var(--label-secondary)]">
-                    <span className="font-medium text-[var(--label)]">Location unavailable.</span>{" "}
-                    {locationUnavailableMessage(locationState.reason)}{" "}
+                    <span className="font-medium text-[var(--label)]">Location not set.</span>{" "}
+                    We can&apos;t route nearby requests or show accurate distances until you add GPS or your
+                    PIN code in{" "}
                     <Link href="/profile" className="font-medium text-[var(--accent)] hover:underline">
                       Profile
                     </Link>
@@ -197,15 +197,16 @@ export default async function HomePage() {
               )}
             </div>
             <div className="flex shrink-0 flex-col items-end gap-3">
+              <DonorAvailabilityToggle
+                isAvailable={donorProfile.is_available}
+                eligible={eligible}
+                hasDonationDate={!!donorProfile.last_donation_date}
+              />
               <UseMyLocationToggle
+                variant="home"
                 enabled={profile.use_my_location ?? false}
                 needsRefresh={gpsNeedsRefresh}
               />
-              <DonorAvailabilityToggle
-              isAvailable={donorProfile.is_available}
-              eligible={eligible}
-              hasDonationDate={!!donorProfile.last_donation_date}
-            />
             </div>
           </GroupedRow>
         </GroupedSection>
