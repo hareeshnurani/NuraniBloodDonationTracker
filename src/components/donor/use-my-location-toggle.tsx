@@ -72,11 +72,12 @@ export function UseMyLocationToggle({
   const isHome = variant === "home";
 
   return (
-    <div className="flex flex-col items-end gap-1">
+    <div className={isHome ? "w-full" : "flex flex-col items-end gap-1"}>
       <Switch
         checked={enabled}
         onChange={toggle}
         disabled={loading}
+        className={isHome ? "w-full" : undefined}
         label={isHome ? "Location" : "Use my location"}
         description={
           isHome
@@ -89,7 +90,15 @@ export function UseMyLocationToggle({
         }
       />
       {error && (
-        <p className="max-w-[220px] text-right text-[12px] text-[var(--accent)]">{error}</p>
+        <p
+          className={
+            isHome
+              ? "mt-2 text-[12px] leading-snug text-[var(--accent)]"
+              : "max-w-[220px] text-right text-[12px] text-[var(--accent)]"
+          }
+        >
+          {error}
+        </p>
       )}
     </div>
   );

@@ -9,8 +9,7 @@ import { Badge } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PageHeader, SectionHeader, EmptyState } from "@/components/ui/page-header";
 import { GroupedSection, GroupedRow, GroupedRowIcon } from "@/components/ui/grouped-list";
-import { DonorAvailabilityToggle } from "@/components/donor/availability-toggle";
-import { UseMyLocationToggle } from "@/components/donor/use-my-location-toggle";
+import { DonorHomeStatusControls } from "@/components/donor/donor-home-status-controls";
 import { UseMyLocationAutoRefresh } from "@/components/donor/use-my-location-auto-refresh";
 import { PendingConfirmations } from "@/components/donor/pending-confirmations";
 import { PinReorderList } from "@/components/communities/pin-reorder-list";
@@ -165,50 +164,55 @@ export default async function HomePage() {
 
       {donorProfile && (
         <GroupedSection title="Donor Status">
-          <GroupedRow>
-            <GroupedRowIcon color="red">
-              <Droplets className="h-4 w-4" />
-            </GroupedRowIcon>
-            <div className="flex-1">
-              <p className="text-[15px] font-medium text-[var(--label)]">
-                Blood group {donorProfile.blood_group}
-              </p>
-              {!eligible && donorProfile.last_donation_date && (
-                <p className="text-[13px] text-[var(--warning)] mt-0.5">
-                  Eligible again on {format(getEligibleDate(donorProfile.last_donation_date), "MMM d, yyyy")}
+          <div className="space-y-4 p-4">
+            <div className="flex items-start gap-3">
+              <GroupedRowIcon color="red">
+                <Droplets className="h-4 w-4" />
+              </GroupedRowIcon>
+              <div className="min-w-0 flex-1 space-y-1">
+                <p className="text-[17px] font-semibold tracking-tight text-[var(--label)]">
+                  {donorProfile.blood_group}
                 </p>
-              )}
-              {eligible && (
-                <p className="text-[13px] text-[var(--success)] mt-0.5">Eligible to donate</p>
-              )}
-              {!hasLocation && (
-                <div className="mt-2 flex items-start gap-2 rounded-[var(--radius-md)] border border-[var(--warning)]/30 bg-[var(--warning-soft,#fff8e6)] px-3 py-2">
-                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[var(--warning)]" />
-                  <p className="text-[13px] leading-snug text-[var(--label-secondary)]">
-                    <span className="font-medium text-[var(--label)]">Location not set.</span>{" "}
-                    We can&apos;t route nearby requests or show accurate distances until you add GPS or your
-                    PIN code in{" "}
-                    <Link href="/profile" className="font-medium text-[var(--accent)] hover:underline">
-                      Profile
-                    </Link>
-                    .
+                <p className="text-[13px] text-[var(--label-secondary)]">Blood group</p>
+                {!eligible && donorProfile.last_donation_date && (
+                  <p className="text-[13px] text-[var(--warning)] pt-0.5">
+                    Eligible again on{" "}
+                    {format(getEligibleDate(donorProfile.last_donation_date), "MMM d, yyyy")}
                   </p>
+                )}
+                {eligible && (
+                  <p className="inline-flex items-center rounded-full bg-[var(--success-soft)] px-2.5 py-0.5 text-[12px] font-medium text-[var(--success)]">
+                    Eligible to donate
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <DonorHomeStatusControls
+              isAvailable={donorProfile.is_available}
+              eligible={eligible}
+              hasDonationDate={!!donorProfile.last_donation_date}
+              useMyLocation={profile.use_my_location ?? false}
+              gpsNeedsRefresh={gpsNeedsRefresh}
+            />
+
+            {!hasLocation && (
+              <div className="flex gap-3 rounded-[var(--radius-lg)] border border-[var(--warning)]/25 bg-[var(--warning-soft,#fff8e6)] p-4">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--warning)]/15">
+                  <MapPin className="h-4 w-4 text-[var(--warning)]" />
                 </div>
-              )}
-            </div>
-            <div className="flex shrink-0 flex-col items-end gap-3">
-              <DonorAvailabilityToggle
-                isAvailable={donorProfile.is_available}
-                eligible={eligible}
-                hasDonationDate={!!donorProfile.last_donation_date}
-              />
-              <UseMyLocationToggle
-                variant="home"
-                enabled={profile.use_my_location ?? false}
-                needsRefresh={gpsNeedsRefresh}
-              />
-            </div>
-          </GroupedRow>
+                <p className="text-[14px] leading-relaxed text-[var(--label-secondary)]">
+                  <span className="font-semibold text-[var(--label)]">Location not set.</span>{" "}
+                  We can&apos;t route nearby requests or show accurate distances until you add GPS or
+                  your PIN code in{" "}
+                  <Link href="/profile" className="font-medium text-[var(--accent)] hover:underline">
+                    Profile
+                  </Link>
+                  .
+                </p>
+              </div>
+            )}
+          </div>
         </GroupedSection>
       )}
 

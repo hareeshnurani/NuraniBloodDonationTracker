@@ -8,9 +8,15 @@ interface Props {
   isAvailable: boolean;
   eligible: boolean;
   hasDonationDate: boolean;
+  variant?: "default" | "home";
 }
 
-export function DonorAvailabilityToggle({ isAvailable, eligible, hasDonationDate }: Props) {
+export function DonorAvailabilityToggle({
+  isAvailable,
+  eligible,
+  hasDonationDate,
+  variant = "default",
+}: Props) {
   const [available, setAvailable] = useState(isAvailable);
   const [loading, setLoading] = useState(false);
 
@@ -26,7 +32,13 @@ export function DonorAvailabilityToggle({ isAvailable, eligible, hasDonationDate
 
   if (!hasDonationDate) {
     return (
-      <p className="text-[13px] text-[var(--warning)] text-right max-w-[200px]">
+      <p
+        className={
+          variant === "home"
+            ? "text-[13px] leading-snug text-[var(--warning)]"
+            : "text-[13px] text-[var(--warning)] text-right max-w-[200px]"
+        }
+      >
         Set last donation date in Profile
       </p>
     );
@@ -34,7 +46,13 @@ export function DonorAvailabilityToggle({ isAvailable, eligible, hasDonationDate
 
   if (!eligible) {
     return (
-      <p className="text-[13px] text-[var(--warning)] text-right max-w-[200px]">
+      <p
+        className={
+          variant === "home"
+            ? "text-[13px] leading-snug text-[var(--warning)]"
+            : "text-[13px] text-[var(--warning)] text-right max-w-[200px]"
+        }
+      >
         90-day cooldown active
       </p>
     );
@@ -45,7 +63,7 @@ export function DonorAvailabilityToggle({ isAvailable, eligible, hasDonationDate
       checked={available}
       onChange={toggle}
       disabled={loading}
-      label={available ? "Available" : "Unavailable"}
+      label={variant === "home" ? "Available" : available ? "Available" : "Unavailable"}
     />
   );
 }
