@@ -1,13 +1,14 @@
 import { notFound } from "next/navigation";
-import { requireActiveProfile } from "@/lib/auth";
+import Link from "next/link";
+import { format } from "date-fns";
+import { requireActiveProfile, getDonorProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { checkDeadlineWarnings } from "@/lib/actions/requests";
 import { Card, Badge } from "@/components/ui/card";
 import { RequestActions } from "@/components/requests/request-actions";
+import { ActiveRequestActions } from "@/components/donor/active-request-actions";
 import { REQUEST_STATUS_LABELS, PRIORITY_LABELS } from "@/lib/constants";
 import { shouldPromptDeadlineExtension } from "@/lib/utils";
-import { format } from "date-fns";
-import Link from "next/link";
 
 export default async function RequestDetailPage({
   params,
@@ -30,27 +31,40 @@ export default async function RequestDetailPage({
 
   const isOwner = request.requester_id === profile.id;
   const isAdmin = profile.role === "admin";
-  if (!isOwner && !isAdmin) {
-    const { data: invite } = await supabase
-      .from("donor_invitations")
-      .select("id")
-      .eq("request_id", id)
-      .eq("donor_id", profile.id)
-      .maybeSingle();
-    if (!invite) notFound();
-  }
+  const isOpen = ["open", "partially_filled"].includes(request.status);
 
-  const { data: invitations } = await supabase
+  const { data: myInvite } = await supabase
     .from("donor_invitations")
-    .select("*, profiles:donor_id(name)")
+    .select("id, response, is_confirmed")
     .eq("request_id", id)
-    .order("created_at", { ascending: false });
+    .eq("donor_id", profile.id)
+    .maybeSingle();
 
-  const { data: threads } = await supabase
-    .from("chat_threads")
-    .select("id, donor_id")
-    .eq("request_id", id)
-    .eq("requester_id", profile.id);
+  const donorProfile =
+    !isOwner && !isAdmin ? await getDonorProfile(profile.id) : null;
+  const showDonorRespond =
+    !isOwner &&
+    !isAdmin &&
+    isOpen &&
+    request.units_filled < request.units_needed &&
+    !!donorProfile?.willing_to_donate;
+
+  const { data: invitations } =
+    isOwner || isAdmin
+      ? await supabase
+          .from("donor_invitations")
+          .select("*, profiles:donor_id(name)")
+          .eq("request_id", id)
+          .order("created_at", { ascending: false })
+      : { data: null };
+
+  const { data: threads } = isOwner
+    ? await supabase
+        .from("chat_threads")
+        .select("id, donor_id")
+        .eq("request_id", id)
+        .eq("requester_id", profile.id)
+    : { data: null };
 
   const canExtend =
     isOwner &&
@@ -120,6 +134,34 @@ export default async function RequestDetailPage({
           </div>
         )}
       </Card>
+
+      {!isOwner && !isAdmin && myInvite && (
+        <Card>
+          <h2 className="font-semibold text-gray-900">Your invitation</h2>
+          <p className="mt-2 text-sm text-gray-600">
+            You have been matched to this request.
+          </p>
+          <Link
+            href={`/donor/invites/${myInvite.id}`}
+            className="mt-3 inline-block text-sm font-medium text-red-600 hover:underline"
+          >
+            Open invite →
+          </Link>
+        </Card>
+      )}
+
+      {showDonorRespond && !myInvite && (
+        <Card>
+          <h2 className="font-semibold text-gray-900">Respond as donor</h2>
+          <p className="mt-1 text-sm text-gray-600">
+            Turn on availability on Home if accept fails. You will confirm distance before accepting
+            requests far from you.
+          </p>
+          <div className="mt-4">
+            <ActiveRequestActions requestId={id} />
+          </div>
+        </Card>
+      )}
 
       {isOwner && threads && threads.length > 0 && (
         <Card>
