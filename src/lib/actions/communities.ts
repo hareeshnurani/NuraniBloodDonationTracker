@@ -121,13 +121,6 @@ export async function leaveCommunity(communityId: string) {
   if (!profile) return { error: "Not authorized" };
 
   const supabase = await createClient();
-  const { data: community } = await supabase
-    .from("communities")
-    .select("creator_id")
-    .eq("id", communityId)
-    .single();
-
-  if (!community) return { error: "Community not found" };
 
   const { count } = await supabase
     .from("community_members")
@@ -144,8 +137,10 @@ export async function leaveCommunity(communityId: string) {
 
   if (!membership) return { error: "You are not a member" };
 
-  if (community.creator_id === profile.id && (count ?? 0) <= 1) {
-    return { error: "Transfer admin role before leaving, or delete the community." };
+  if (membership.is_admin && (count ?? 0) <= 1) {
+    return {
+      error: "Promote another member to admin before leaving this group.",
+    };
   }
 
   await supabase
@@ -395,6 +390,7 @@ export async function setCommunityAdmin(communityId: string, userId: string, isA
 
   if (error) return { error: error.message };
   revalidatePath(`/communities/${communityId}`);
+  revalidatePath(`/communities/${communityId}/members`);
   return { success: true };
 }
 
