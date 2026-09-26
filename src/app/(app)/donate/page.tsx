@@ -1,16 +1,15 @@
 import Link from "next/link";
 import { requireActiveProfile, getDonorProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import {
-  getEffectiveLocationState,
-} from "@/lib/profile-location";
+import { getEffectiveLocationState } from "@/lib/profile-location";
 import { PageHeader, SectionHeader, EmptyState } from "@/components/ui/page-header";
-import { DonorInviteCarousel } from "@/components/donor/donor-invite-carousel";
-import { getDonorDonatePreview } from "@/lib/donor-donate-feed";
+import { DonorWallCarousel } from "@/components/donor/donor-wall-carousel";
+import { getDonorDonateWall } from "@/lib/donor-donate-feed";
 import { MATCH_RADIUS_KM } from "@/lib/constants";
-import { Heart, MapPin, ChevronRight } from "lucide-react";
+import { isDonorEligible } from "@/lib/utils";
+import { Heart, MapPin, ChevronRight, Droplets } from "lucide-react";
 
-const PREVIEW_LIMIT = 5;
+const PREVIEW_LIMIT = 8;
 
 export default async function DonatePage() {
   const { profile } = await requireActiveProfile();
@@ -23,12 +22,12 @@ export default async function DonatePage() {
       <div className="space-y-6">
         <PageHeader
           title="Donate"
-          subtitle="Set up your donor profile in Profile to see matching requests."
+          subtitle="Set up your donor profile in Profile to see the public request wall."
         />
         <EmptyState
           icon={<Heart className="h-6 w-6" />}
           title="Donor profile needed"
-          description="Complete onboarding or add donor details in Profile to browse donation requests."
+          description="Complete onboarding or add donor details in Profile to browse active donation requests."
           action={
             <Link href="/profile" className="text-[15px] font-medium text-[var(--accent)]">
               Go to Profile →
@@ -39,7 +38,30 @@ export default async function DonatePage() {
     );
   }
 
-  const { nearby, other } = await getDonorDonatePreview(supabase, profile, donorProfile);
+  const eligible = isDonorEligible(donorProfile.last_donation_date);
+  if (!donorProfile.willing_to_donate || !eligible) {
+    return (
+      <div className="space-y-6">
+        <PageHeader title="Donate" subtitle="Public wall of active blood requests matching your group." />
+        <EmptyState
+          icon={<Droplets className="h-6 w-6" />}
+          title="Not eligible to browse as donor"
+          description={
+            !donorProfile.willing_to_donate
+              ? "Mark yourself as willing to donate in Profile to see requests here."
+              : "You are still in the post-donation cooldown period."
+          }
+          action={
+            <Link href="/profile" className="text-[15px] font-medium text-[var(--accent)]">
+              Go to Profile →
+            </Link>
+          }
+        />
+      </div>
+    );
+  }
+
+  const { nearby, other } = await getDonorDonateWall(supabase, profile, donorProfile);
   const nearbyPreview = nearby.slice(0, PREVIEW_LIMIT);
   const otherPreview = other.slice(0, PREVIEW_LIMIT);
 
@@ -47,13 +69,13 @@ export default async function DonatePage() {
     <div className="space-y-10">
       <PageHeader
         title="Donate"
-        subtitle="Respond to blood requests that match your group — nearby first, then wider matches."
+        subtitle="Public wall — every active request that matches your blood group, not limited to your communities."
       />
 
       {!locationState.available && (
         <p className="rounded-[var(--radius-lg)] border border-[var(--warning)]/25 bg-[var(--warning-soft,#fff8e6)] px-4 py-3 text-[14px] text-[var(--label-secondary)]">
-          <span className="font-semibold text-[var(--label)]">Location not set.</span> Distances may be
-          inaccurate until you set GPS or PIN in{" "}
+          <span className="font-semibold text-[var(--label)]">Location not set.</span> Requests with
+          unknown distance appear under &quot;Other&quot; until you set GPS or PIN in{" "}
           <Link href="/profile" className="font-medium text-[var(--accent)] hover:underline">
             Profile
           </Link>
@@ -76,15 +98,15 @@ export default async function DonatePage() {
           }
         />
         <p className="mb-4 px-1 text-[13px] text-[var(--label-secondary)]">
-          Within {MATCH_RADIUS_KM} km — same matching radius as automatic invites.
+          Within {MATCH_RADIUS_KM} km of you — all open matching requests on the wall.
         </p>
         {nearbyPreview.length > 0 ? (
-          <DonorInviteCarousel cards={nearbyPreview} />
+          <DonorWallCarousel rows={nearbyPreview} donorAvailable={donorProfile.is_available} />
         ) : (
           <EmptyState
             icon={<MapPin className="h-6 w-6" />}
-            title="No nearby pending invites"
-            description="When a request matches you within 50 km, cards will appear here."
+            title="No nearby active requests"
+            description="When an open request matches your group within 50 km, it appears here."
           />
         )}
       </section>
@@ -104,15 +126,15 @@ export default async function DonatePage() {
           }
         />
         <p className="mb-4 px-1 text-[13px] text-[var(--label-secondary)]">
-          Beyond {MATCH_RADIUS_KM} km — often community-linked or wider search; confirm distance before accepting.
+          More than {MATCH_RADIUS_KM} km away, or distance unknown — still on the public wall.
         </p>
         {otherPreview.length > 0 ? (
-          <DonorInviteCarousel cards={otherPreview} />
+          <DonorWallCarousel rows={otherPreview} donorAvailable={donorProfile.is_available} />
         ) : (
           <EmptyState
             icon={<Heart className="h-6 w-6" />}
-            title="No distant pending invites"
-            description="Invites beyond 50 km show here when you are in a linked community or matched at wider range."
+            title="No other active requests"
+            description="Wider-area matching requests show here when they are open and match your group."
           />
         )}
       </section>

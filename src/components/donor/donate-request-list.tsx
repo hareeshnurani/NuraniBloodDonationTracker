@@ -8,6 +8,11 @@ import { formatDistance } from "@/lib/utils";
 import type { DonorActiveRequestRow } from "@/lib/donor-donate-feed";
 import { Droplets } from "lucide-react";
 
+function formatDistanceLabel(km: number | null) {
+  if (km === null) return "Distance unknown";
+  return formatDistance(km);
+}
+
 export function DonateRequestList({
   rows,
   donorAvailable,
@@ -37,7 +42,7 @@ export function DonateRequestList({
             </div>
             <p className="mt-0.5 text-[13px] text-[var(--label-secondary)]">
               {req.primaryBloodGroup} · {req.unitsFilled}/{req.unitsNeeded} units ·{" "}
-              {formatDistance(req.distanceKm)}
+              {formatDistanceLabel(req.distanceKm)}
             </p>
             <p className="mt-0.5 text-[12px] text-[var(--label-tertiary)]">
               Deadline: {format(new Date(req.deadline), "MMM d, h:mm a")}
