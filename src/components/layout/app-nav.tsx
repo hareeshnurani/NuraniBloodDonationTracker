@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -14,35 +13,39 @@ import {
   Shield,
   LogOut,
   Plus,
-  MoreHorizontal,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { MobileMoreSheet } from "./mobile-more-sheet";
 
 const desktopLinks = [
   { href: "/home", label: "Home", icon: Home },
+  { href: "/donate", label: "Donate", icon: Droplets },
   { href: "/communities", label: "Groups", icon: Users },
-  { href: "/donor/invites", label: "Donor", icon: Droplets },
-  { href: "/notifications", label: "Alerts", icon: Bell },
   { href: "/chat", label: "Chat", icon: MessageCircle },
   { href: "/profile", label: "Profile", icon: User },
 ];
 
 const mobileTabs = [
   { href: "/home", label: "Home", icon: Home },
-  { href: "/donor/invites", label: "Donor", icon: Droplets },
-  { href: "/notifications", label: "Alerts", icon: Bell },
+  { href: "/donate", label: "Donate", icon: Droplets },
+  { href: "/communities", label: "Groups", icon: Users },
   { href: "/chat", label: "Chat", icon: MessageCircle },
+  { href: "/profile", label: "Profile", icon: User },
 ];
 
-export function AppNav({ isAdmin }: { isAdmin?: boolean }) {
-  const pathname = usePathname();
-  const [moreOpen, setMoreOpen] = useState(false);
+function navActive(pathname: string, href: string) {
+  if (href === "/home") return pathname === "/home";
+  if (href === "/donate") return pathname.startsWith("/donate") || pathname.startsWith("/donor/invites");
+  return pathname.startsWith(href);
+}
 
-  const moreActive =
-    pathname.startsWith("/profile") ||
-    pathname.startsWith("/requests/new") ||
-    pathname.startsWith("/admin");
+export function AppNav({
+  isAdmin,
+  unreadAlerts = 0,
+}: {
+  isAdmin?: boolean;
+  unreadAlerts?: number;
+}) {
+  const pathname = usePathname();
 
   async function handleLogout() {
     const supabase = createClient();
@@ -50,19 +53,38 @@ export function AppNav({ isAdmin }: { isAdmin?: boolean }) {
     window.location.href = "/login";
   }
 
+  const alertsActive = pathname.startsWith("/notifications");
+
   return (
     <>
       {/* Mobile header */}
       <header className="sticky top-0 z-50 glass border-b border-[var(--separator)] pt-[env(safe-area-inset-top)] lg:hidden">
         <div className="flex items-center justify-between px-4 py-2.5">
-          <Link href="/home" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-[var(--accent)] text-white">
+          <Link href="/home" className="flex min-w-0 items-center gap-2">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-[var(--accent)] text-white">
               <Droplets className="h-4 w-4" />
             </div>
-            <span className="text-[17px] font-semibold text-[var(--label)]">BloodLink</span>
+            <span className="truncate text-[17px] font-semibold text-[var(--label)]">BloodLink</span>
           </Link>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex shrink-0 items-center gap-1.5">
+            <Link
+              href="/notifications"
+              className={cn(
+                "relative flex h-9 w-9 items-center justify-center rounded-full transition-colors",
+                alertsActive
+                  ? "bg-[var(--accent-soft)] text-[var(--accent)]"
+                  : "bg-[var(--surface-secondary)] text-[var(--label-secondary)]"
+              )}
+              aria-label={`Alerts${unreadAlerts > 0 ? `, ${unreadAlerts} unread` : ""}`}
+            >
+              <Bell className="h-[18px] w-[18px]" />
+              {unreadAlerts > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[10px] font-bold text-white">
+                  {unreadAlerts > 99 ? "99+" : unreadAlerts}
+                </span>
+              )}
+            </Link>
             {isAdmin && (
               <Link
                 href="/admin"
@@ -105,7 +127,7 @@ export function AppNav({ isAdmin }: { isAdmin?: boolean }) {
                 href={href}
                 className={cn(
                   "flex items-center gap-1.5 rounded-[10px] px-3.5 py-2 text-[13px] font-medium transition-all duration-200",
-                  pathname.startsWith(href)
+                  navActive(pathname, href)
                     ? "bg-[var(--accent-soft)] text-[var(--accent)]"
                     : "text-[var(--label-secondary)] hover:bg-[var(--surface-secondary)] hover:text-[var(--label)]"
                 )}
@@ -129,6 +151,23 @@ export function AppNav({ isAdmin }: { isAdmin?: boolean }) {
               </Link>
             )}
             <div className="mx-1 h-5 w-px bg-[var(--separator)]" />
+            <Link
+              href="/notifications"
+              className={cn(
+                "relative flex h-9 w-9 items-center justify-center rounded-[10px] transition-colors",
+                alertsActive
+                  ? "bg-[var(--accent-soft)] text-[var(--accent)]"
+                  : "text-[var(--label-secondary)] hover:bg-[var(--surface-secondary)]"
+              )}
+              aria-label={`Alerts${unreadAlerts > 0 ? `, ${unreadAlerts} unread` : ""}`}
+            >
+              <Bell className="h-5 w-5" />
+              {unreadAlerts > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[10px] font-bold text-white">
+                  {unreadAlerts > 99 ? "99+" : unreadAlerts}
+                </span>
+              )}
+            </Link>
             <Link href="/requests/new">
               <button className="flex items-center gap-1.5 rounded-[10px] bg-[var(--accent)] px-3.5 py-2 text-[13px] font-medium text-white transition-all hover:bg-[var(--accent-hover)] active:scale-[0.98]">
                 <Plus className="h-4 w-4" />
@@ -152,36 +191,23 @@ export function AppNav({ isAdmin }: { isAdmin?: boolean }) {
       >
         <div className="flex items-stretch">
           {mobileTabs.map(({ href, label, icon: Icon }) => {
-            const active = pathname.startsWith(href);
+            const active = navActive(pathname, href);
             return (
               <Link
                 key={href}
                 href={href}
                 className={cn(
-                  "flex min-h-[50px] flex-1 flex-col items-center justify-center gap-0.5 py-1.5 transition-colors",
+                  "flex min-h-[50px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-0.5 py-1.5 transition-colors",
                   active ? "text-[var(--accent)]" : "text-[var(--label-tertiary)]"
                 )}
               >
-                <Icon className={cn("h-[22px] w-[22px]", active && "stroke-[2.5]")} />
-                <span className="text-[10px] font-medium leading-none">{label}</span>
+                <Icon className={cn("h-[21px] w-[21px]", active && "stroke-[2.5]")} />
+                <span className="max-w-full truncate text-[10px] font-medium leading-none">{label}</span>
               </Link>
             );
           })}
-          <button
-            type="button"
-            onClick={() => setMoreOpen(true)}
-            className={cn(
-              "flex min-h-[50px] flex-1 flex-col items-center justify-center gap-0.5 py-1.5 transition-colors",
-              moreActive ? "text-[var(--accent)]" : "text-[var(--label-tertiary)]"
-            )}
-          >
-            <MoreHorizontal className={cn("h-[22px] w-[22px]", moreActive && "stroke-[2.5]")} />
-            <span className="text-[10px] font-medium leading-none">More</span>
-          </button>
         </div>
       </nav>
-
-      <MobileMoreSheet open={moreOpen} onClose={() => setMoreOpen(false)} isAdmin={isAdmin} />
     </>
   );
 }

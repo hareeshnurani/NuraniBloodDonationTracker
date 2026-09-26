@@ -38,8 +38,8 @@ export default async function CommunitiesPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Communities"
-        subtitle="Join groups to share and respond to blood requests"
+        title="Groups"
+        subtitle="Your communities — tap one to view requests and members"
         action={
           <Link href="/communities/new">
             <Button>
