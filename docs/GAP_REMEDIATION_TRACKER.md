@@ -3,7 +3,7 @@
 Use this document to track fixing the gaps identified in the **critical product/ops review** (September 2026).  
 Check boxes as work completes: `- [ ]` → `- [x]`.
 
-**Related docs:** [P0-1_PRODUCTION_MIGRATIONS.md](./P0-1_PRODUCTION_MIGRATIONS.md) · [PROJECT_HANDOFF.md](./PROJECT_HANDOFF.md) · [SUPABASE_SQL_TO_RUN.md](./SUPABASE_SQL_TO_RUN.md) · [SUPABASE_SMTP.md](./SUPABASE_SMTP.md) · [LAUNCH_AND_SUSTAINABILITY.md](./LAUNCH_AND_SUSTAINABILITY.md)
+**Related docs:** [P0-1_PRODUCTION_MIGRATIONS.md](./P0-1_PRODUCTION_MIGRATIONS.md) · [P0-2_EMAIL_ALERTS.md](./P0-2_EMAIL_ALERTS.md) · [PROJECT_HANDOFF.md](./PROJECT_HANDOFF.md) · [SUPABASE_SQL_TO_RUN.md](./SUPABASE_SQL_TO_RUN.md) · [SUPABASE_SMTP.md](./SUPABASE_SMTP.md) · [LAUNCH_AND_SUSTAINABILITY.md](./LAUNCH_AND_SUSTAINABILITY.md)
 
 ---
 

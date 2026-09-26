@@ -18,7 +18,7 @@ export async function notifyUser(
     payload,
   });
 
-  if (options?.email === false) return;
+  if (options?.email !== true) return;
 
   const { data: profile } = await supabase
     .from("profiles")

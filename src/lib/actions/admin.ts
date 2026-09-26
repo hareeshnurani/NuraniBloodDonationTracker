@@ -204,7 +204,7 @@ export async function adminForceCloseRequest(requestId: string, reason: string) 
     "Request closed by admin",
     `Your request for ${request.patient_name} was closed: ${trimmed}`,
     { request_id: requestId },
-    { path: `/requests/${requestId}` }
+    { path: `/requests/${requestId}`, email: true }
   );
 
   await logAudit(profile.id, "admin_request_closed", "blood_request", requestId, { reason: trimmed });
