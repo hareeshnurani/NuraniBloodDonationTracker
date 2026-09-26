@@ -18,13 +18,53 @@ Related: [OPS_BACKUP_STAGING.md](./OPS_BACKUP_STAGING.md) · [GAP_REMEDIATION_TR
 
 ## 1. Automated CI (included in repo)
 
+### Add the workflow file (one-time)
+
+If CI is not on `main` yet, add this file in GitHub (**Add file → Create new file**):
+
+**Path:** `.github/workflows/ci.yml`
+
+```yaml
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE2NDUxOTI4MDAsImV4cCI6MTk2MDc2ODgwMH0.ci-placeholder
+          SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-service-role-key-for-build-only
+```
+
+Or merge branch `cursor/p0-7-ci-monitoring-8267` and add this file in the same PR from your machine (`git push` with **`workflow`** scope on your PAT).
+
 On every **pull request** and push to **`main`**, GitHub runs:
 
 | Step | Command | Purpose |
 |------|---------|---------|
 | Unit tests | `npm test` | Location rules, email skip without Resend key |
-| Lint | `npm run lint` | ESLint |
 | Build | `npm run build` | Catches TypeScript / Next.js regressions |
+
+Lint (`npm run lint`) is run locally when fixing UI code; not gated in CI until existing warnings are cleaned up.
 
 **You do nothing** after merge except open **GitHub → Actions** and confirm jobs pass.
 
