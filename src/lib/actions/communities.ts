@@ -230,6 +230,111 @@ export async function addCommunityMember(communityId: string, userEmail: string)
 
   if (error) return { error: error.message };
   revalidatePath(`/communities/${communityId}`);
+  revalidatePath(`/communities/${communityId}/members`);
+  return { success: true };
+}
+
+export type CommunityMemberSearchResult = {
+  id: string;
+  name: string;
+  email: string;
+};
+
+export async function searchCommunityMemberCandidates(
+  communityId: string,
+  query: string
+): Promise<{ error?: string; results?: CommunityMemberSearchResult[] }> {
+  const profile = await getProfile();
+  if (!profile) return { error: "Not authorized" };
+
+  const trimmed = query.trim();
+  if (trimmed.length < 2) return { results: [] };
+
+  const supabase = await createClient();
+  const { data: membership } = await supabase
+    .from("community_members")
+    .select("is_admin")
+    .eq("community_id", communityId)
+    .eq("user_id", profile.id)
+    .single();
+
+  if (!membership?.is_admin) return { error: "Only admins can add members" };
+
+  const service = createServiceClient();
+  const { data: existingMembers } = await service
+    .from("community_members")
+    .select("user_id")
+    .eq("community_id", communityId);
+
+  const memberIds = new Set((existingMembers ?? []).map((m) => m.user_id));
+  const safe = trimmed.replace(/[%_,]/g, " ").trim();
+  if (safe.length < 2) return { results: [] };
+
+  const pattern = `%${safe}%`;
+  const select = "id, name, email";
+  const base = () =>
+    service.from("profiles").select(select).eq("status", "active").limit(25);
+
+  const [{ data: byName, error: nameError }, { data: byEmail, error: emailError }] =
+    await Promise.all([base().ilike("name", pattern), base().ilike("email", pattern)]);
+
+  if (nameError) return { error: nameError.message };
+  if (emailError) return { error: emailError.message };
+
+  const merged = new Map<string, { id: string; name: string; email: string }>();
+  for (const row of [...(byName ?? []), ...(byEmail ?? [])]) {
+    if (!memberIds.has(row.id)) merged.set(row.id, row);
+  }
+
+  const results = [...merged.values()]
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .slice(0, 15);
+
+  return { results };
+}
+
+export async function addCommunityMemberByUserId(communityId: string, userId: string) {
+  const profile = await getProfile();
+  if (!profile) return { error: "Not authorized" };
+
+  const supabase = await createClient();
+  const { data: membership } = await supabase
+    .from("community_members")
+    .select("is_admin")
+    .eq("community_id", communityId)
+    .eq("user_id", profile.id)
+    .single();
+
+  if (!membership?.is_admin) return { error: "Only admins can add members" };
+
+  const service = createServiceClient();
+  const { data: user } = await service
+    .from("profiles")
+    .select("id, status")
+    .eq("id", userId)
+    .single();
+
+  if (!user || user.status !== "active") return { error: "User not found or not active" };
+
+  const { data: already } = await service
+    .from("community_members")
+    .select("user_id")
+    .eq("community_id", communityId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (already) return { error: "User is already a member" };
+
+  const { error } = await service.from("community_members").insert({
+    community_id: communityId,
+    user_id: userId,
+    is_admin: false,
+  });
+
+  if (error) return { error: error.message };
+  revalidatePath(`/communities/${communityId}`);
+  revalidatePath(`/communities/${communityId}/members`);
+  revalidatePath("/home");
   return { success: true };
 }
 

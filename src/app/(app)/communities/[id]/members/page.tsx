@@ -3,6 +3,7 @@ import { requireActiveProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/card";
 import { EntityAvatar, InsetListShell, InsetScreenHeader } from "@/components/ui/entity-avatar";
+import { CommunityMembersAddButton } from "@/components/communities/community-members-add";
 import { cn } from "@/lib/utils";
 
 export default async function CommunityMembersPage({
@@ -32,6 +33,8 @@ export default async function CommunityMembersPage({
   if (!membership && community.visibility === "private" && profile.role !== "admin") {
     notFound();
   }
+
+  const isCommunityAdmin = membership?.is_admin ?? false;
 
   const { data: members } = await supabase
     .from("community_members")
@@ -63,7 +66,12 @@ export default async function CommunityMembersPage({
         backLabel="Back to group"
         title="Members"
         subtitle={community.name}
-        trailing={<Badge className="mr-2 shrink-0">{members?.length ?? 0}</Badge>}
+        trailing={
+          <div className="mr-1 flex shrink-0 items-center gap-2">
+            {isCommunityAdmin && <CommunityMembersAddButton communityId={id} />}
+            <Badge>{members?.length ?? 0}</Badge>
+          </div>
+        }
       />
 
       <InsetListShell className="lg:rounded-t-none lg:border-t-0">
