@@ -1,7 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { BloodGroup } from "@/lib/constants";
 import { MATCH_RADIUS_KM } from "@/lib/constants";
-import { type DonorHomeCard, getDonorHomeFeed } from "@/lib/donor-feed";
 import { haversineKm, isDonorEligible } from "@/lib/utils";
 
 export type DonorActiveRequestRow = {
@@ -13,37 +12,33 @@ export type DonorActiveRequestRow = {
   unitsFilled: number;
   unitsNeeded: number;
   deadline: string;
-  distanceKm: number;
+  /** null when donor location is unknown */
+  distanceKm: number | null;
   isReplacementMatch: boolean;
   inviteResponse?: string;
 };
 
-export function splitCardsByRadius(cards: DonorHomeCard[]) {
-  const nearby = cards.filter((c) => c.distanceKm <= MATCH_RADIUS_KM);
-  const other = cards.filter((c) => c.distanceKm > MATCH_RADIUS_KM);
+export function splitRequestsByRadius(rows: DonorActiveRequestRow[]) {
+  const nearby = rows.filter(
+    (r) => r.distanceKm !== null && r.distanceKm <= MATCH_RADIUS_KM
+  );
+  const other = rows.filter(
+    (r) => r.distanceKm === null || r.distanceKm > MATCH_RADIUS_KM
+  );
   return { nearby, other };
 }
 
-export async function getDonorDonatePreview(
-  supabase: SupabaseClient,
-  profile: { id: string; latitude: number | null; longitude: number | null },
-  donorProfile: Parameters<typeof getDonorHomeFeed>[2]
-) {
-  const feed = await getDonorHomeFeed(supabase, profile, donorProfile);
-  const { nearby, other } = splitCardsByRadius(feed.cards);
-  return { nearby, other, feed };
-}
+type DonorProfileSlice = {
+  blood_group: BloodGroup;
+  willing_to_donate: boolean;
+  last_donation_date: string | null;
+};
 
-export async function getDonorActiveRequestsForSection(
+/** Public wall: every open matching request (blood group), not limited to invites or communities. */
+export async function getMatchingActiveRequests(
   supabase: SupabaseClient,
   profile: { id: string; latitude: number | null; longitude: number | null },
-  donorProfile: {
-    blood_group: BloodGroup;
-    willing_to_donate: boolean;
-    is_available: boolean;
-    last_donation_date: string | null;
-  },
-  section: "nearby" | "other"
+  donorProfile: DonorProfileSlice
 ): Promise<DonorActiveRequestRow[]> {
   if (!donorProfile.willing_to_donate || !isDonorEligible(donorProfile.last_donation_date)) {
     return [];
@@ -59,7 +54,7 @@ export async function getDonorActiveRequestsForSection(
       i.request_id,
       {
         id: i.id,
-        distance_km: i.distance_km,
+        distance_km: i.distance_km as number | null,
         is_replacement_match: i.is_replacement_match,
         response: i.response,
       },
@@ -68,14 +63,19 @@ export async function getDonorActiveRequestsForSection(
 
   const { data: openRequests } = await supabase
     .from("blood_requests")
-    .select("id, patient_name, primary_blood_group, priority, units_filled, units_needed, deadline, latitude, longitude, accepts_replacement, status")
+    .select(
+      "id, patient_name, primary_blood_group, priority, units_filled, units_needed, deadline, latitude, longitude, accepts_replacement, status"
+    )
     .in("status", ["open", "partially_filled"])
     .order("deadline", { ascending: true })
-    .limit(100);
+    .limit(150);
 
   const openIds = (openRequests ?? []).map((r) => r.id);
   const { data: replacementGroups } = openIds.length
-    ? await supabase.from("request_replacement_groups").select("request_id, blood_group").in("request_id", openIds)
+    ? await supabase
+        .from("request_replacement_groups")
+        .select("request_id, blood_group")
+        .in("request_id", openIds)
     : { data: [] as { request_id: string; blood_group: string }[] };
 
   const replacementMap = new Map<string, BloodGroup[]>();
@@ -85,6 +85,7 @@ export async function getDonorActiveRequestsForSection(
     replacementMap.set(rg.request_id, list);
   }
 
+  const hasDonorCoords = profile.latitude != null && profile.longitude != null;
   const rows: DonorActiveRequestRow[] = [];
 
   for (const req of openRequests ?? []) {
@@ -97,14 +98,15 @@ export async function getDonorActiveRequestsForSection(
     if (!isPrimary && !isReplacement) continue;
 
     const inv = inviteByRequest.get(req.id);
-    let distanceKm = inv?.distance_km ?? 0;
-    if (!inv && profile.latitude != null && profile.longitude != null) {
-      distanceKm = Math.round(haversineKm(req.latitude, req.longitude, profile.latitude, profile.longitude) * 10) / 10;
+    let distanceKm: number | null = null;
+    if (inv?.distance_km != null) {
+      distanceKm = inv.distance_km;
+    } else if (hasDonorCoords) {
+      distanceKm =
+        Math.round(
+          haversineKm(req.latitude, req.longitude, profile.latitude!, profile.longitude!) * 10
+        ) / 10;
     }
-
-    const inNearby = distanceKm <= MATCH_RADIUS_KM;
-    if (section === "nearby" && !inNearby) continue;
-    if (section === "other" && inNearby) continue;
 
     rows.push({
       requestId: req.id,
@@ -122,4 +124,24 @@ export async function getDonorActiveRequestsForSection(
   }
 
   return rows;
+}
+
+export async function getDonorDonateWall(
+  supabase: SupabaseClient,
+  profile: { id: string; latitude: number | null; longitude: number | null },
+  donorProfile: DonorProfileSlice
+) {
+  const all = await getMatchingActiveRequests(supabase, profile, donorProfile);
+  return splitRequestsByRadius(all);
+}
+
+export async function getDonorActiveRequestsForSection(
+  supabase: SupabaseClient,
+  profile: { id: string; latitude: number | null; longitude: number | null },
+  donorProfile: DonorProfileSlice & { is_available: boolean },
+  section: "nearby" | "other"
+): Promise<DonorActiveRequestRow[]> {
+  const all = await getMatchingActiveRequests(supabase, profile, donorProfile);
+  const { nearby, other } = splitRequestsByRadius(all);
+  return section === "nearby" ? nearby : other;
 }
