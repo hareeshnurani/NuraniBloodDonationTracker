@@ -19,7 +19,7 @@ export function CommunityMembersEntry({
       href={`/communities/${communityId}/members`}
       className="flex items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--separator)] bg-[var(--surface)] px-4 py-3.5 transition-colors hover:bg-[var(--surface-secondary)] active:bg-[var(--surface-secondary)]"
     >
-      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#007aff]/12 text-[#007aff]">
+      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--accent-soft)] text-[var(--accent)]">
         <Users className="h-5 w-5" />
       </div>
       <div className="min-w-0 flex-1">
@@ -75,7 +75,7 @@ export function CommunityBottomActions({ communityId }: { communityId: string })
         disabled={leaveLoading}
         className={cn(
           "flex w-full items-center gap-3 rounded-[var(--radius-lg)] px-4 py-3.5 text-left text-[16px] font-medium",
-          "text-[#ff9500] transition-colors hover:bg-[#ff9500]/10 active:bg-[#ff9500]/15"
+          "text-[var(--warning)] transition-colors hover:bg-[var(--warning-soft)] active:bg-[var(--warning-soft)]"
         )}
       >
         <LogOut className="h-5 w-5 shrink-0" />

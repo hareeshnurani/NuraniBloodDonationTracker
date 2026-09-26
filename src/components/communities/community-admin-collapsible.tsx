@@ -56,7 +56,7 @@ export function CommunityAdminCollapsible({
         onClick={() => setOpen(!open)}
         className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-secondary)]"
       >
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#5856d6]/15 text-[#5856d6]">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--accent-soft)] text-[var(--accent)]">
           <Settings2 className="h-5 w-5" />
         </div>
         <div className="min-w-0 flex-1">

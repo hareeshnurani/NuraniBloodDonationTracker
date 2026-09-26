@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { requireActiveProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { ChatBox } from "@/components/chat/chat-box";
 import { ReportThreadButton } from "@/components/chat/report-thread-button";
+import { InsetScreenHeader } from "@/components/ui/entity-avatar";
 
 export default async function ChatThreadPage({
   params,
@@ -59,28 +59,21 @@ export default async function ChatThreadPage({
 
   return (
     <div className="-mx-4 flex min-h-[calc(100dvh-8rem)] flex-col lg:mx-0 lg:min-h-[600px]">
-      <header className="flex shrink-0 items-center gap-2 border-b border-[var(--separator)] bg-[#128C7E] px-2 py-2 text-white lg:rounded-t-[var(--radius-lg)]">
-        <Link
-          href={backHref}
-          className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-white/10"
-          aria-label="Back"
-        >
-          <span className="text-[28px] leading-none font-light">‹</span>
-        </Link>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-[17px] font-semibold">{req.patient_name}</p>
-          <p className="truncate text-[13px] text-white/85">{otherName ?? "Chat"}</p>
-        </div>
-        <ReportThreadButton threadId={threadId} variant="onDark" />
-      </header>
+      <InsetScreenHeader
+        backHref={backHref}
+        backLabel="Back"
+        title={req.patient_name}
+        subtitle={otherName ?? "Chat"}
+        trailing={<ReportThreadButton threadId={threadId} variant="header" />}
+      />
 
-      <div className="flex min-h-0 flex-1 flex-col bg-[#e5ddd5] dark:bg-[var(--background)]">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:rounded-b-[var(--radius-lg)] lg:border lg:border-t-0 lg:border-[var(--separator)]">
         <ChatBox
           threadId={threadId}
           messages={messages ?? []}
           currentUserId={profile.id}
           readOnly={false}
-          variant="whatsapp"
+          variant="embedded"
         />
       </div>
     </div>

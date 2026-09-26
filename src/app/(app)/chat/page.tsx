@@ -1,8 +1,10 @@
+import Link from "next/link";
 import { requireActiveProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getChatRequestInbox } from "@/lib/chat-inbox";
 import { ChatRequestListRow } from "@/components/chat/chat-list-row";
 import { EmptyState } from "@/components/ui/page-header";
+import { InsetListShell } from "@/components/ui/entity-avatar";
 import { MessageCircle } from "lucide-react";
 
 export default async function ChatListPage() {
@@ -14,7 +16,7 @@ export default async function ChatListPage() {
   return (
     <div className="-mx-4 min-h-[50vh] lg:mx-0">
       {inbox.length > 0 ? (
-        <div className="bg-[var(--surface)] lg:overflow-hidden lg:rounded-[var(--radius-lg)] lg:border lg:border-[var(--separator)]">
+        <InsetListShell>
           {inbox.map((item) => (
             <ChatRequestListRow
               key={item.requestId}
@@ -28,7 +30,7 @@ export default async function ChatListPage() {
               href={`/chat/request/${item.requestId}`}
             />
           ))}
-        </div>
+        </InsetListShell>
       ) : (
         <div className="px-4 py-10">
           <EmptyState
