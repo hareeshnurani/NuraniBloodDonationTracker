@@ -25,21 +25,44 @@ const HOME_NEARBY_PREVIEW = 8;
 export default async function HomePage() {
   const { profile } = await requireActiveProfile();
   const supabase = await createClient();
-  const donorProfile = await getDonorProfile(profile.id);
 
-  const { data: myRequests } = await supabase
-    .from("blood_requests")
-    .select("*")
-    .eq("requester_id", profile.id)
-    .in("status", ["open", "partially_filled", "draft"])
-    .order("created_at", { ascending: false })
-    .limit(5);
-
-  const { data: acceptedInvites } = await supabase
-    .from("donor_invitations")
-    .select("id, blood_requests(patient_name), donation_confirmations(status)")
-    .eq("donor_id", profile.id)
-    .eq("is_confirmed", true);
+  const [
+    donorProfile,
+    { data: myRequests },
+    { data: acceptedInvites },
+    { count: livesSaved },
+    { data: memberships },
+    { data: pins },
+  ] = await Promise.all([
+    getDonorProfile(profile.id),
+    supabase
+      .from("blood_requests")
+      .select("*")
+      .eq("requester_id", profile.id)
+      .in("status", ["open", "partially_filled", "draft"])
+      .order("created_at", { ascending: false })
+      .limit(5),
+    supabase
+      .from("donor_invitations")
+      .select("id, blood_requests(patient_name), donation_confirmations(status)")
+      .eq("donor_id", profile.id)
+      .eq("is_confirmed", true),
+    supabase
+      .from("donation_confirmations")
+      .select("invitation_id, donor_invitations!inner(donor_id)", { count: "exact", head: true })
+      .eq("status", "donated")
+      .eq("donor_invitations.donor_id", profile.id),
+    supabase
+      .from("community_members")
+      .select("community_id, joined_at, communities(id, name)")
+      .eq("user_id", profile.id)
+      .order("joined_at", { ascending: false }),
+    supabase
+      .from("user_community_pins")
+      .select("community_id, sort_order")
+      .eq("user_id", profile.id)
+      .order("sort_order", { ascending: true }),
+  ]);
 
   const confirmationItems =
     acceptedInvites
@@ -58,24 +81,6 @@ export default async function HomePage() {
           patient_name: req?.patient_name ?? "Patient",
         };
       }) ?? [];
-
-  const { count: livesSaved } = await supabase
-    .from("donation_confirmations")
-    .select("invitation_id, donor_invitations!inner(donor_id)", { count: "exact", head: true })
-    .eq("status", "donated")
-    .eq("donor_invitations.donor_id", profile.id);
-
-  const { data: memberships } = await supabase
-    .from("community_members")
-    .select("community_id, joined_at, communities(id, name)")
-    .eq("user_id", profile.id)
-    .order("joined_at", { ascending: false });
-
-  const { data: pins } = await supabase
-    .from("user_community_pins")
-    .select("community_id, sort_order")
-    .eq("user_id", profile.id)
-    .order("sort_order", { ascending: true });
 
   const communityIds = memberships?.map((m) => m.community_id) ?? [];
   let communityFeed: { id: string; name: string; activeCount: number; sort_order: number; pinned: boolean }[] =

@@ -125,6 +125,7 @@ export function AppNav({
               <Link
                 key={href}
                 href={href}
+                prefetch
                 className={cn(
                   "flex items-center gap-1.5 rounded-[10px] px-3.5 py-2 text-[13px] font-medium transition-all duration-200",
                   navActive(pathname, href)
@@ -196,6 +197,7 @@ export function AppNav({
               <Link
                 key={href}
                 href={href}
+                prefetch
                 className={cn(
                   "flex min-h-[50px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-0.5 py-1.5 transition-colors",
                   active ? "text-[var(--accent)]" : "text-[var(--label-tertiary)]"
