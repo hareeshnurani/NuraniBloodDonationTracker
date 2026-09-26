@@ -13,11 +13,19 @@ export default async function CommunitiesPage() {
   const { profile } = await requireActiveProfile();
   const supabase = await createClient();
 
-  const { data: memberships } = await supabase
-    .from("community_members")
-    .select("community_id, is_admin, joined_at, communities(*)")
-    .eq("user_id", profile.id)
-    .order("joined_at", { ascending: false });
+  const [{ data: memberships }, { data: publicCommunities }] = await Promise.all([
+    supabase
+      .from("community_members")
+      .select("community_id, is_admin, joined_at, communities(*)")
+      .eq("user_id", profile.id)
+      .order("joined_at", { ascending: false }),
+    supabase
+      .from("communities")
+      .select("*")
+      .eq("visibility", "public")
+      .order("created_at", { ascending: false })
+      .limit(20),
+  ]);
 
   const myCommunities =
     memberships?.map((m) => {
@@ -49,13 +57,6 @@ export default async function CommunitiesPage() {
       }
     }
   }
-
-  const { data: publicCommunities } = await supabase
-    .from("communities")
-    .select("*")
-    .eq("visibility", "public")
-    .order("created_at", { ascending: false })
-    .limit(20);
 
   const discover = publicCommunities?.filter((c) => !myIds.includes(c.id)) ?? [];
 
