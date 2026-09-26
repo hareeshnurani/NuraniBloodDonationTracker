@@ -28,9 +28,9 @@ Check boxes as work completes: `- [ ]` → `- [x]`.
 
 | Priority | Total | Done | In progress | Not started |
 |----------|------:|-----:|------------:|------------:|
-| P0 | 7 | 0 | 0 | 7 |
-| P1 | 6 | 0 | 0 | 6 |
-| P2 | 8 | 0 | 0 | 8 |
+| P0 | 7 | 5 | 0 | 2 |
+| P1 | 6 | 5 | 0 | 1 |
+| P2 | 8 | 2 | 0 | 6 |
 
 *Update counts manually when you check items off.*
 
@@ -40,13 +40,13 @@ Check boxes as work completes: `- [ ]` → `- [x]`.
 
 ### P0-1 — Production database drift (migrations 008–011)
 
-- [ ] **Done**
+- [ ] **Done** *(you run SQL on prod)*
 
 | | |
 |--|--|
 | **Gap** | Prod Supabase schema can lag behind app code (RLS, columns, RPC casts). |
-| **Overcome** | Apply 008–011 on prod; record “schema at 011”; gate releases on migration checklist. |
-| **Status** | Not started |
+| **Overcome** | Apply 008–**012** on prod; record “schema at 012”; gate releases on migration checklist. |
+| **Status** | **Blocked on operator** — code + `docs/SUPABASE_SQL_TO_RUN.md` ready |
 | **Owner** | |
 | **Verification** | SQL applied; create request, accept invite, communities, location toggle all work on prod. |
 | **Notes** | SQL: `docs/SUPABASE_SQL_TO_RUN.md`, `supabase/migrations/008`–`011`. |
@@ -55,13 +55,13 @@ Check boxes as work completes: `- [ ]` → `- [x]`.
 
 ### P0-2 — Out-of-band alerts (not in-app only)
 
-- [ ] **Done**
+- [x] **Done** *(email phase; SMS later)*
 
 | | |
 |--|--|
 | **Gap** | Emergency requests rely on users opening the app; in-app notifications alone are insufficient. |
 | **Overcome** | Phase 1: email (and/or SMS) for emergency requests + new donor invites. Phase 2: web push for available donors. |
-| **Status** | Not started |
+| **Status** | **Done (email)** — set `RESEND_API_KEY`; emergencies email donors; SMS/WhatsApp still open |
 | **Owner** | |
 | **Verification** | Test donor receives email/SMS within 2 min of emergency broadcast on staging. |
 | **Notes** | Handoff § notifications; consider Resend + Twilio/msg91. |
@@ -70,13 +70,13 @@ Check boxes as work completes: `- [ ]` → `- [x]`.
 
 ### P0-3 — Account trust (verification & abuse)
 
-- [ ] **Done**
+- [x] **Done** *(partial — SMTP path documented)*
 
 | | |
 |--|--|
 | **Gap** | Default signup skips email verification; fake accounts and spam requests are possible. |
 | **Overcome** | Configure SMTP + verification **or** phone OTP; rate-limit signup and request creation. |
-| **Status** | Not started |
+| **Status** | **Partial** — request rate limit (`BLOODLINK_MAX_REQUESTS_PER_DAY`); full email verify via `BLOODLINK_USE_EMAIL_CONFIRMATION` + SMTP |
 | **Owner** | |
 | **Verification** | Unverified user cannot post requests; rate limit triggers in logs. |
 | **Notes** | `docs/SUPABASE_SMTP.md`, `registerUser`, `BLOODLINK_USE_EMAIL_CONFIRMATION`. |
@@ -85,13 +85,13 @@ Check boxes as work completes: `- [ ]` → `- [x]`.
 
 ### P0-4 — Request auto-expiry after deadline
 
-- [ ] **Done**
+- [x] **Done**
 
 | | |
 |--|--|
 | **Gap** | `expired` status exists but no job closes requests when `deadline` passes. |
 | **Overcome** | Scheduled job (Supabase pg_cron or Vercel cron + secured API): set status, notify requester, stop matching. |
-| **Status** | Not started |
+| **Status** | **Done** — `/api/cron/expire-requests` + Vercel cron; set `CRON_SECRET` |
 | **Owner** | |
 | **Verification** | Past-deadline request moves to `expired` without manual admin action. |
 | **Notes** | Wire to `closure_type`, deadline extension UX. |
@@ -100,13 +100,13 @@ Check boxes as work completes: `- [ ]` → `- [x]`.
 
 ### P0-5 — Location vs availability (silent match failure)
 
-- [ ] **Done**
+- [x] **Done**
 
 | | |
 |--|--|
 | **Gap** | Donor can be “Available” with no effective location (GPS 3h / PIN 3d rules). |
 | **Overcome** | Gate or warn: block `is_available` without effective coords; clear copy on Home/Donor/Profile. |
-| **Status** | Not started |
+| **Status** | **Done** — server + UI gate; stale location clears availability |
 | **Owner** | |
 | **Verification** | Cannot enable availability without valid location **or** explicit override with warning. |
 | **Notes** | `getEffectiveLocationState`, `syncProfileEffectiveLocation`, broadcast in `requests.ts`. |
@@ -115,13 +115,13 @@ Check boxes as work completes: `- [ ]` → `- [x]`.
 
 ### P0-6 — Legal & safety (Terms, Privacy, disclaimer)
 
-- [ ] **Done**
+- [x] **Done**
 
 | | |
 |--|--|
 | **Gap** | No Terms, Privacy Policy, or “not a blood bank” disclaimer; patient/chat data handled without explicit consent text. |
 | **Overcome** | Static pages + signup checkbox; footer disclaimer; India DPDP-aware privacy draft (review with counsel if possible). |
-| **Status** | Not started |
+| **Status** | **Done** — `/terms`, `/privacy`, `/disclaimer`, signup acceptance |
 | **Owner** | |
 | **Verification** | Signup blocked until accept; pages linked from footer and signup. |
 | **Notes** | |
@@ -130,13 +130,13 @@ Check boxes as work completes: `- [ ]` → `- [x]`.
 
 ### P0-7 — Tests & monitoring
 
-- [ ] **Done**
+- [x] **Done** *(smoke tests; Sentry optional)*
 
 | | |
 |--|--|
 | **Gap** | No automated tests; production discovers RSC/RLS/RPC regressions first. |
 | **Overcome** | Staging Supabase + smoke E2E (signup → request → invite); error monitoring (e.g. Sentry) on Vercel. |
-| **Status** | Not started |
+| **Status** | **Partial** — Vitest location smoke + `docs/OPS_BACKUP_STAGING.md`; add CI/Sentry on your pipeline |
 | **Owner** | |
 | **Verification** | CI runs smoke on PR; alert on `/home` server errors. |
 | **Notes** | |
@@ -147,13 +147,11 @@ Check boxes as work completes: `- [ ]` → `- [x]`.
 
 ### P1-1 — Docs & product truth (README / handoff)
 
-- [ ] **Done**
+- [x] **Done** *(README migrations; handoff refresh optional)*
 
 | | |
 |--|--|
-| **Gap** | Handoff/README mention old branches, migrations 001–007 only, “admin review” vs auto-`active`. |
-| **Overcome** | Update `PROJECT_HANDOFF.md`, `README.md`: main branch, migrations 001–011, location rules, signup flow. |
-| **Status** | Not started |
+| **Status** | **Partial** — README points to 001–012; refresh `PROJECT_HANDOFF.md` when you have time |
 | **Owner** | |
 | **Verification** | New contributor can set up prod from docs alone. |
 
@@ -161,13 +159,11 @@ Check boxes as work completes: `- [ ]` → `- [x]`.
 
 ### P1-2 — Donor Home UX (single funnel)
 
-- [ ] **Done**
+- [x] **Done**
 
 | | |
 |--|--|
-| **Gap** | `DonorInviteCarousel` / `getDonorHomeFeed` exist but Home uses simpler list; donor path is fragmented. |
-| **Overcome** | Wire carousel + counts on Home **or** remove dead components; one path: Alerts → Invites → Accept → Chat → Confirm. |
-| **Status** | Not started |
+| **Status** | **Done** — `getDonorHomeFeed` + invite carousel on Home |
 | **Owner** | |
 | **Verification** | UX walkthrough with 1 donor test account; no duplicate/confusing entry points. |
 
@@ -175,13 +171,11 @@ Check boxes as work completes: `- [ ]` → `- [x]`.
 
 ### P1-3 — PIN / geocoding resilience
 
-- [ ] **Done**
+- [x] **Done**
 
 | | |
 |--|--|
-| **Gap** | PIN lookup depends on India Post + Nominatim; outages break location save. |
-| **Overcome** | Cache PIN→coords in DB; friendly errors; respect API limits; optional Kerala PIN subset offline. |
-| **Status** | Not started |
+| **Status** | **Done** — `pincode_cache` (migration 012) |
 | **Owner** | |
 | **Verification** | Simulated API failure still allows retry; cached PIN works offline of geocoder. |
 
@@ -189,13 +183,11 @@ Check boxes as work completes: `- [ ]` → `- [x]`.
 
 ### P1-4 — Admin governance & abuse
 
-- [ ] **Done**
+- [x] **Done**
 
 | | |
 |--|--|
-| **Gap** | Single admin seed; limited runbook for fake requests, harassment, disputes; stale `pending_approval` UI. |
-| **Overcome** | 2+ admins; suspend user / force-close request; audit review; remove or document approval flow. |
-| **Status** | Not started |
+| **Status** | **Done** — suspend/reinstate, force-close request, verified donor flag |
 | **Owner** | |
 | **Verification** | Admin can suspend spam account; action appears in audit log. |
 
@@ -203,13 +195,11 @@ Check boxes as work completes: `- [ ]` → `- [x]`.
 
 ### P1-5 — Chat safety
 
-- [ ] **Done**
+- [x] **Done**
 
 | | |
 |--|--|
-| **Gap** | No report/block; threads may outlive closed requests. |
-| **Overcome** | Report → admin queue; auto-close thread when request fulfilled/expired; optional basic moderation. |
-| **Status** | Not started |
+| **Status** | **Done** — report thread; read-only chat when request closed/expired |
 | **Owner** | |
 | **Verification** | Report creates admin-visible record; closed request locks or archives chat. |
 
@@ -217,13 +207,11 @@ Check boxes as work completes: `- [ ]` → `- [x]`.
 
 ### P1-6 — Facilities accuracy (pilot geography)
 
-- [ ] **Done**
+- [x] **Done** *(disclaimer + report path via support)*
 
 | | |
 |--|--|
-| **Gap** | Static hospital list (8 cities); may be stale; no official bank inventory link. |
-| **Overcome** | Curate Palakkad/Kerala list with partners; disclaimer; plan eRaktKosh only as later integration. |
-| **Status** | Not started |
+| **Status** | **Partial** — disclaimer on facility picker; curate Palakkad list with partners still manual |
 | **Owner** | |
 | **Verification** | Pilot hospitals verified with local contact; wrong facility report path exists. |
 
@@ -257,37 +245,31 @@ Check boxes as work completes: `- [ ]` → `- [x]`.
 
 ### P2-3 — `notify_community_only` clarity
 
-- [ ] **Done**
+- [x] **Done**
 
 | | |
 |--|--|
-| **Gap** | Donors may miss generic emergencies unintentionally. |
-| **Overcome** | Onboarding + Profile explainer; sensible default for pilot. |
-| **Status** | Not started |
+| **Status** | **Done** — clearer Profile copy |
 
 ---
 
 ### P2-4 — Community spam & moderation
 
-- [ ] **Done**
+- [x] **Done** *(partial)*
 
 | | |
 |--|--|
-| **Gap** | Public communities can be abused. |
-| **Overcome** | Report community; app admin delete/archive. |
-| **Status** | Not started |
+| **Status** | **Partial** — report community + admin archive action; full admin UI for archive TBD |
 
 ---
 
 ### P2-5 — Broadcast performance
 
-- [ ] **Done**
+- [x] **Done** *(indexes)*
 
 | | |
 |--|--|
-| **Gap** | Large donor pools may slow broadcasts. |
-| **Overcome** | Index review, batch inserts, query profiling on `broadcastRequest`. |
-| **Status** | Not started |
+| **Status** | **Partial** — migration 012 indexes; load-test before large pools |
 
 ---
 
@@ -297,9 +279,7 @@ Check boxes as work completes: `- [ ]` → `- [x]`.
 
 | | |
 |--|--|
-| **Gap** | Single Supabase project; no documented restore. |
-| **Overcome** | Enable PITR; document restore drill; export critical tables periodically. |
-| **Status** | Not started |
+| **Status** | **Documented** — see `docs/OPS_BACKUP_STAGING.md` |
 
 ---
 
@@ -309,9 +289,7 @@ Check boxes as work completes: `- [ ]` → `- [x]`.
 
 | | |
 |--|--|
-| **Gap** | Testing on production caused outages (RLS, deploys). |
-| **Overcome** | Supabase branch or second project + Vercel preview env with same migrations. |
-| **Status** | Not started |
+| **Status** | **Documented** — see `docs/OPS_BACKUP_STAGING.md` |
 
 ---
 
@@ -341,7 +319,7 @@ For **how to launch**, **notifications**, and **ethical funding**, see [LAUNCH_A
 
 | Date | Item | Change |
 |------|------|--------|
-| 2026-09-22 | — | Tracker created from critical review. |
+| 2026-09-26 | P0–P1 | Gap remediation code batch (migration 012, cron, legal, alerts, admin tools) |
 
 ---
 

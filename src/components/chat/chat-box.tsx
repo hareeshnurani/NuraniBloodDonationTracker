@@ -11,10 +11,12 @@ export function ChatBox({
   threadId,
   messages,
   currentUserId,
+  readOnly = false,
 }: {
   threadId: string;
   messages: ChatMessage[];
   currentUserId: string;
+  readOnly?: boolean;
 }) {
   const [body, setBody] = useState("");
   const [loading, setLoading] = useState(false);
@@ -66,6 +68,10 @@ export function ChatBox({
         onSubmit={handleSend}
         className="flex items-center gap-2 border-t border-[var(--separator)] bg-[var(--surface-secondary)] p-3"
       >
+        {readOnly ? (
+          <p className="flex-1 text-center text-[14px] text-[var(--label-secondary)]">Messaging is disabled for closed requests.</p>
+        ) : (
+          <>
         <input
           value={body}
           onChange={(e) => setBody(e.target.value)}
@@ -80,6 +86,8 @@ export function ChatBox({
         >
           <Send className="h-4 w-4" />
         </button>
+          </>
+        )}
       </form>
     </div>
   );

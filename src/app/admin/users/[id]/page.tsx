@@ -7,6 +7,8 @@ import {
   AdminDonorDateEditor,
   AdminMessageForm,
   AdminRoleActions,
+  AdminSuspendActions,
+  AdminVerifiedDonorToggle,
 } from "@/components/admin/user-actions";
 import { requireAdmin } from "@/lib/auth";
 import { USER_STATUS_LABELS } from "@/lib/constants";
@@ -94,6 +96,16 @@ export default async function AdminUserDetailPage({
             currentRole={user.role as "user" | "admin"}
             currentUserId={currentAdmin.id}
           />
+        </div>
+      </Card>
+
+      <Card>
+        <h2 className="font-semibold">Safety</h2>
+        <div className="mt-3 space-y-3">
+          <AdminSuspendActions userId={id} status={user.status} />
+          {donor && (
+            <AdminVerifiedDonorToggle userId={id} verified={!!user.verified_donor} />
+          )}
         </div>
       </Card>
 

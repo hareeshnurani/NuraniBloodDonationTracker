@@ -11,6 +11,7 @@ export const USER_STATUS_LABELS: Record<string, string> = {
   pending_approval: "Pending Approval",
   active: "Active",
   rejected: "Rejected",
+  suspended: "Suspended",
 };
 
 export const REQUEST_STATUS_LABELS: Record<string, string> = {

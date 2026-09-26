@@ -7,6 +7,7 @@ type Props = {
   isAvailable: boolean;
   eligible: boolean;
   hasDonationDate: boolean;
+  hasEffectiveLocation: boolean;
   useMyLocation: boolean;
   gpsNeedsRefresh: boolean;
 };
@@ -15,6 +16,7 @@ export function DonorHomeStatusControls({
   isAvailable,
   eligible,
   hasDonationDate,
+  hasEffectiveLocation,
   useMyLocation,
   gpsNeedsRefresh,
 }: Props) {
@@ -26,6 +28,7 @@ export function DonorHomeStatusControls({
           isAvailable={isAvailable}
           eligible={eligible}
           hasDonationDate={hasDonationDate}
+          hasEffectiveLocation={hasEffectiveLocation}
         />
       </div>
       <div className="px-4 py-3.5">

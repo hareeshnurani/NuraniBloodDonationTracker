@@ -1,6 +1,6 @@
 import type { BloodGroup } from "./constants";
 
-export type UserStatus = "profile_incomplete" | "pending_approval" | "active" | "rejected";
+export type UserStatus = "profile_incomplete" | "pending_approval" | "active" | "rejected" | "suspended";
 export type UserRole = "user" | "admin";
 export type RequestPriority = "emergency" | "routine";
 export type RequestStatus =
@@ -48,6 +48,8 @@ export interface Profile {
   status: UserStatus;
   role: UserRole;
   rejection_reason: string | null;
+  verified_donor?: boolean;
+  terms_accepted_at?: string | null;
   created_at: string;
   updated_at: string;
 }

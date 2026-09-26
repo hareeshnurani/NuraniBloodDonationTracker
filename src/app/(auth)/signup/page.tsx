@@ -14,6 +14,7 @@ export default function SignupPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -22,7 +23,7 @@ export default function SignupPage() {
     setLoading(true);
     setError("");
 
-    const result = await registerUser(name, email, password);
+    const result = await registerUser(name, email, password, acceptedTerms);
     if (!result.ok) {
       setError(result.error);
       setLoading(false);
@@ -96,6 +97,30 @@ export default function SignupPage() {
                 required
               />
             </div>
+            <label className="flex items-start gap-3 text-[13px] leading-snug text-[var(--label-secondary)]">
+              <input
+                type="checkbox"
+                checked={acceptedTerms}
+                onChange={(e) => setAcceptedTerms(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-[var(--separator)]"
+                required
+              />
+              <span>
+                I agree to the{" "}
+                <Link href="/terms" className="font-medium text-[var(--accent)] hover:underline" target="_blank">
+                  Terms of Service
+                </Link>
+                ,{" "}
+                <Link href="/privacy" className="font-medium text-[var(--accent)] hover:underline" target="_blank">
+                  Privacy Policy
+                </Link>
+                , and{" "}
+                <Link href="/disclaimer" className="font-medium text-[var(--accent)] hover:underline" target="_blank">
+                  medical disclaimer
+                </Link>
+                .
+              </span>
+            </label>
             {error && (
               <div className="rounded-[var(--radius-md)] bg-[var(--accent-soft)] px-4 py-3 text-[14px] text-[var(--accent)]">
                 {error}

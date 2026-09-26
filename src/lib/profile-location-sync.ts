@@ -22,6 +22,11 @@ export async function syncProfileEffectiveLocation(userId: string): Promise<void
         .update({ latitude: null, longitude: null })
         .eq("id", userId);
     }
+    await supabase
+      .from("donor_profiles")
+      .update({ is_available: false })
+      .eq("user_id", userId)
+      .eq("is_available", true);
     return;
   }
 

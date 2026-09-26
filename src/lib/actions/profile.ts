@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getProfile } from "@/lib/auth";
 import { lookupPincode } from "@/lib/pincode";
 import { syncProfileEffectiveLocation } from "@/lib/profile-location-sync";
+import { getEffectiveLocationState, locationUnavailableMessage } from "@/lib/profile-location";
 import type { BloodGroup } from "@/lib/constants";
 
 export async function completeProfile(formData: FormData) {
@@ -81,7 +82,26 @@ export async function updateDonorProfile(formData: FormData) {
     updates.last_donation_date = formData.get("last_donation_date") || null;
   }
   if (formData.has("is_available")) {
-    updates.is_available = formData.get("is_available") === "true";
+    const wantsAvailable = formData.get("is_available") === "true";
+    if (wantsAvailable) {
+      const { data: fullProfile } = await supabase
+        .from("profiles")
+        .select(
+          "use_my_location, latitude, longitude, home_pincode, location_label, gps_updated_at, pin_updated_at"
+        )
+        .eq("id", profile.id)
+        .single();
+
+      if (fullProfile) {
+        const loc = getEffectiveLocationState(fullProfile);
+        if (!loc.available) {
+          return {
+            error: locationUnavailableMessage(loc.reason),
+          };
+        }
+      }
+    }
+    updates.is_available = wantsAvailable;
   }
   if (formData.has("blood_group")) {
     updates.blood_group = formData.get("blood_group");

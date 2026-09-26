@@ -9,6 +9,18 @@ export async function sendMessage(threadId: string, body: string) {
   if (!profile || !body.trim()) return { error: "Invalid message" };
 
   const supabase = await createClient();
+
+  const { data: thread } = await supabase
+    .from("chat_threads")
+    .select("status")
+    .eq("id", threadId)
+    .single();
+
+  if (!thread) return { error: "Conversation not found" };
+  if (thread.status === "closed") {
+    return { error: "This conversation is closed because the request ended." };
+  }
+
   const { error } = await supabase.from("chat_messages").insert({
     thread_id: threadId,
     sender_id: profile.id,

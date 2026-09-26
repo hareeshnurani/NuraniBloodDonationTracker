@@ -9,6 +9,7 @@ import { Users, Droplets, Globe, Lock } from "lucide-react";
 import { CommunityAdminPanel } from "@/components/communities/community-admin-panel";
 import { PinButton } from "@/components/communities/pin-button";
 import { LeaveCommunityButton } from "@/components/communities/leave-community-button";
+import { ReportCommunityButton } from "@/components/communities/report-community-button";
 import { PRIORITY_LABELS } from "@/lib/constants";
 import { format } from "date-fns";
 
@@ -98,6 +99,7 @@ export default async function CommunityDetailPage({
           isMember ? (
             <div className="flex items-center gap-2">
               <PinButton communityId={id} isPinned={!!pin} />
+              <ReportCommunityButton communityId={id} />
               <LeaveCommunityButton communityId={id} />
             </div>
           ) : undefined

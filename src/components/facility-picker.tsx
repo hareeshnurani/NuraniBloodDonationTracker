@@ -168,6 +168,15 @@ export function FacilityPicker({
         </div>
       )}
 
+      <p className="text-[12px] text-[var(--label-tertiary)] leading-relaxed">
+        Listings are curated for the pilot and may be outdated. Confirm blood availability with the hospital or blood bank
+        directly. See the{" "}
+        <a href="/disclaimer" className="text-[var(--accent)] hover:underline">
+          medical disclaimer
+        </a>
+        .
+      </p>
+
       {includeHiddenFields && (
         <>
           <input type="hidden" name="facility_id" value={selected?.id ?? ""} required={required} />

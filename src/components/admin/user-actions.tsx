@@ -7,6 +7,9 @@ import {
   adminUpdateDonationDate,
   adminSendMessage,
   setUserRole,
+  suspendUser,
+  reinstateUser,
+  setVerifiedDonor,
 } from "@/lib/actions/admin";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
@@ -133,5 +136,71 @@ export function AdminMessageForm({ userId }: { userId: string }) {
       <Textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="Message to user..." rows={3} />
       <Button size="sm" onClick={send} disabled={loading}>Send message</Button>
     </div>
+  );
+}
+
+export function AdminSuspendActions({
+  userId,
+  status,
+}: {
+  userId: string;
+  status: string;
+}) {
+  const [loading, setLoading] = useState(false);
+
+  async function suspend() {
+    const reason = prompt("Reason for suspension (shown to user):");
+    if (!reason) return;
+    setLoading(true);
+    const result = await suspendUser(userId, reason);
+    if (result.error) alert(result.error);
+    else window.location.reload();
+  }
+
+  async function reinstate() {
+    if (!confirm("Reinstate this user to active status?")) return;
+    setLoading(true);
+    await reinstateUser(userId);
+    window.location.reload();
+  }
+
+  if (status === "rejected" || status === "profile_incomplete") return null;
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {status !== "suspended" && (
+        <Button size="sm" variant="danger" onClick={suspend} disabled={loading}>
+          Suspend account
+        </Button>
+      )}
+      {status === "suspended" && (
+        <Button size="sm" onClick={reinstate} disabled={loading}>
+          Reinstate user
+        </Button>
+      )}
+    </div>
+  );
+}
+
+export function AdminVerifiedDonorToggle({
+  userId,
+  verified,
+}: {
+  userId: string;
+  verified: boolean;
+}) {
+  const [loading, setLoading] = useState(false);
+
+  async function toggle() {
+    setLoading(true);
+    const result = await setVerifiedDonor(userId, !verified);
+    if (result.error) alert(result.error);
+    else window.location.reload();
+  }
+
+  return (
+    <Button size="sm" variant="secondary" onClick={toggle} disabled={loading}>
+      {verified ? "Remove verified donor badge" : "Mark as verified donor"}
+    </Button>
   );
 }

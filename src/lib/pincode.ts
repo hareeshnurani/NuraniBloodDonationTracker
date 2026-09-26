@@ -1,3 +1,5 @@
+import { createServiceClient } from "@/lib/supabase/admin";
+
 export interface PincodePostOffice {
   name: string;
   district: string;
@@ -49,6 +51,31 @@ export async function lookupPincode(
     return { error: "Please enter a valid 6-digit PIN code." };
   }
 
+  try {
+    const admin = createServiceClient();
+    const { data: cached } = await admin
+      .from("pincode_cache")
+      .select("*")
+      .eq("pincode", cleaned)
+      .maybeSingle();
+
+    if (cached) {
+      return {
+        data: {
+          pincode: cached.pincode,
+          postOffices: [],
+          district: cached.district,
+          state: cached.state,
+          latitude: cached.latitude,
+          longitude: cached.longitude,
+          displayLocation: cached.display_location,
+        },
+      };
+    }
+  } catch {
+    /* cache table may not exist yet on older schemas */
+  }
+
   let postalData: PostalApiResponse;
   try {
     const res = await fetch(`https://api.postalpincode.in/pincode/${cleaned}`, {
@@ -83,6 +110,21 @@ export async function lookupPincode(
   }));
 
   const displayLocation = `${district}, ${state} (${cleaned})`;
+
+  try {
+    const admin = createServiceClient();
+    await admin.from("pincode_cache").upsert({
+      pincode: cleaned,
+      latitude: coords.latitude,
+      longitude: coords.longitude,
+      district,
+      state,
+      display_location: displayLocation,
+      updated_at: new Date().toISOString(),
+    });
+  } catch {
+    /* ignore cache write failures */
+  }
 
   return {
     data: {

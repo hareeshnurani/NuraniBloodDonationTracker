@@ -36,7 +36,7 @@ Professional blood donation request management system built with Next.js and Sup
 ### 1. Create a Supabase project
 
 1. Go to [supabase.com](https://supabase.com) and create a new project
-2. Run **all** SQL migrations in `supabase/migrations/` (001 through 007) in order via the SQL Editor — see [docs/PROJECT_HANDOFF.md](docs/PROJECT_HANDOFF.md) for details
+2. Run **all** SQL migrations in `supabase/migrations/` (**001 through 012**) in order via the SQL Editor — see [docs/SUPABASE_SQL_TO_RUN.md](docs/SUPABASE_SQL_TO_RUN.md) and [docs/PROJECT_HANDOFF.md](docs/PROJECT_HANDOFF.md)
 3. Enable email confirmation under **Authentication → Providers → Email** (optional if using default BloodLink signup without SMTP — see [docs/SUPABASE_SMTP.md](docs/SUPABASE_SMTP.md))
 
 ### 2. Configure environment variables

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/auth";
+import { notifyUser } from "@/lib/user-notifications";
 
 async function logAudit(
   actorId: string,
@@ -122,6 +123,136 @@ export async function setUserRole(userId: string, role: "user" | "admin") {
 
   revalidatePath("/admin/users");
   revalidatePath(`/admin/users/${userId}`);
+  return { success: true };
+}
+
+export async function suspendUser(userId: string, reason: string) {
+  const { profile } = await requireAdmin();
+  const supabase = createServiceClient();
+
+  if (userId === profile.id) return { error: "You cannot suspend your own account." };
+
+  await supabase
+    .from("profiles")
+    .update({ status: "suspended", rejection_reason: reason.trim() || "Suspended by admin" })
+    .eq("id", userId);
+
+  await supabase.from("donor_profiles").update({ is_available: false }).eq("user_id", userId);
+
+  await notifyUser(
+    userId,
+    "admin_message",
+    "Account suspended",
+    reason.trim() || "Your account has been suspended. Contact support if you have questions.",
+    {},
+    { email: true }
+  );
+
+  await logAudit(profile.id, "user_suspended", "profile", userId, { reason });
+  revalidatePath("/admin/users");
+  revalidatePath(`/admin/users/${userId}`);
+  return { success: true };
+}
+
+export async function reinstateUser(userId: string) {
+  const { profile } = await requireAdmin();
+  const supabase = createServiceClient();
+
+  await supabase
+    .from("profiles")
+    .update({ status: "active", rejection_reason: null })
+    .eq("id", userId);
+
+  await logAudit(profile.id, "user_reinstated", "profile", userId);
+  revalidatePath("/admin/users");
+  revalidatePath(`/admin/users/${userId}`);
+  return { success: true };
+}
+
+export async function adminForceCloseRequest(requestId: string, reason: string) {
+  const { profile } = await requireAdmin();
+  const supabase = createServiceClient();
+
+  const trimmed = reason.trim();
+  if (!trimmed) return { error: "Reason is required" };
+
+  const { data: request } = await supabase
+    .from("blood_requests")
+    .select("id, patient_name, requester_id, status")
+    .eq("id", requestId)
+    .single();
+
+  if (!request) return { error: "Request not found" };
+  if (!["open", "partially_filled", "draft"].includes(request.status)) {
+    return { error: "Request is not active" };
+  }
+
+  await supabase
+    .from("blood_requests")
+    .update({
+      status: "closed",
+      closure_type: "manual",
+      closure_reason: `[Admin] ${trimmed}`,
+    })
+    .eq("id", requestId);
+
+  await supabase.from("chat_threads").update({ status: "closed" }).eq("request_id", requestId);
+
+  await notifyUser(
+    request.requester_id,
+    "admin_message",
+    "Request closed by admin",
+    `Your request for ${request.patient_name} was closed: ${trimmed}`,
+    { request_id: requestId },
+    { path: `/requests/${requestId}` }
+  );
+
+  await logAudit(profile.id, "admin_request_closed", "blood_request", requestId, { reason: trimmed });
+  revalidatePath("/admin/requests");
+  revalidatePath(`/requests/${requestId}`);
+  return { success: true };
+}
+
+export async function setVerifiedDonor(userId: string, verified: boolean) {
+  const { profile } = await requireAdmin();
+  const supabase = createServiceClient();
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ verified_donor: verified })
+    .eq("id", userId);
+
+  if (error) {
+    if (error.message.includes("verified_donor")) {
+      return { error: "Apply migration 012 in Supabase first." };
+    }
+    return { error: error.message };
+  }
+
+  await logAudit(profile.id, verified ? "donor_verified" : "donor_unverified", "profile", userId);
+  revalidatePath(`/admin/users/${userId}`);
+  return { success: true };
+}
+
+export async function archiveCommunity(communityId: string, archived: boolean) {
+  const { profile } = await requireAdmin();
+  const supabase = createServiceClient();
+
+  const { error } = await supabase
+    .from("communities")
+    .update({ is_archived: archived })
+    .eq("id", communityId);
+
+  if (error) {
+    if (error.message.includes("is_archived")) {
+      return { error: "Apply migration 012 in Supabase first." };
+    }
+    return { error: error.message };
+  }
+
+  await logAudit(profile.id, archived ? "community_archived" : "community_restored", "community", communityId);
+  revalidatePath("/admin/communities");
+  revalidatePath(`/communities/${communityId}`);
   return { success: true };
 }
 

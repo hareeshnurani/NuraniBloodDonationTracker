@@ -8,6 +8,7 @@ interface Props {
   isAvailable: boolean;
   eligible: boolean;
   hasDonationDate: boolean;
+  hasEffectiveLocation: boolean;
   variant?: "default" | "home";
 }
 
@@ -15,6 +16,7 @@ export function DonorAvailabilityToggle({
   isAvailable,
   eligible,
   hasDonationDate,
+  hasEffectiveLocation,
   variant = "default",
 }: Props) {
   const [available, setAvailable] = useState(isAvailable);
@@ -22,6 +24,7 @@ export function DonorAvailabilityToggle({
 
   async function toggle(checked: boolean) {
     if (!eligible || !hasDonationDate) return;
+    if (checked && !hasEffectiveLocation) return;
     setLoading(true);
     const formData = new FormData();
     formData.set("is_available", checked.toString());
@@ -58,11 +61,25 @@ export function DonorAvailabilityToggle({
     );
   }
 
+  if (!hasEffectiveLocation && eligible && hasDonationDate) {
+    return (
+      <p
+        className={
+          variant === "home"
+            ? "text-[13px] leading-snug text-[var(--warning)]"
+            : "text-[13px] text-[var(--warning)] text-right max-w-[200px]"
+        }
+      >
+        Set location before turning on availability
+      </p>
+    );
+  }
+
   return (
     <Switch
       checked={available}
       onChange={toggle}
-      disabled={loading}
+      disabled={loading || (!hasEffectiveLocation && !available)}
       label={variant === "home" ? "Available" : available ? "Available" : "Unavailable"}
     />
   );

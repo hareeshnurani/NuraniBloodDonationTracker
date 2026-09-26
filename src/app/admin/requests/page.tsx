@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { Card, Badge } from "@/components/ui/card";
 import { REQUEST_STATUS_LABELS, PRIORITY_LABELS } from "@/lib/constants";
+import { AdminForceCloseButton } from "@/components/admin/admin-force-close-button";
 import { format } from "date-fns";
 
 export default async function AdminRequestsPage() {
@@ -29,11 +30,16 @@ export default async function AdminRequestsPage() {
                     {format(new Date(req.deadline), "MMM d, h:mm a")}
                   </p>
                 </div>
+                <div className="flex items-center gap-2">
                 <div className="flex gap-2">
                   <Badge variant={req.priority === "emergency" ? "emergency" : "default"}>
                     {PRIORITY_LABELS[req.priority]}
                   </Badge>
                   <Badge>{REQUEST_STATUS_LABELS[req.status]}</Badge>
+                </div>
+                {["open", "partially_filled", "draft"].includes(req.status) && (
+                  <AdminForceCloseButton requestId={req.id} />
+                )}
                 </div>
               </div>
             </Card>

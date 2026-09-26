@@ -2,6 +2,8 @@
 
 Run each block in the Supabase **SQL Editor** (Dashboard → SQL → New query) if that migration is not already applied.
 
+See also numbered files under `supabase/migrations/` (001–012).
+
 ## 011 — Use my location (GPS every 3 hours, PIN 3 days)
 
 Adds `use_my_location`, `gps_updated_at`, and `pin_updated_at` on `profiles`.
@@ -44,3 +46,27 @@ SET
 ```
 
 Also in repo: `supabase/migrations/011_profile_use_my_location.sql`.
+
+---
+
+## 012 — Gap remediation (PIN cache, reports, suspended users)
+
+Run when deploying gap-remediation code. **Copy the full migration:** `supabase/migrations/012_gap_remediation.sql`.
+
+Includes:
+
+- `pincode_cache` — survives India Post / Nominatim outages after first lookup
+- `content_reports` — chat/community moderation queue (`/admin/reports`)
+- `user_status` value **`suspended`**
+- `profiles.terms_accepted_at`, `profiles.verified_donor`
+- `communities.is_archived`
+- Indexes for expiry cron and broadcasts
+
+After applying, set **Vercel** env:
+
+- `CRON_SECRET` — Vercel Cron calls `/api/cron/expire-requests` with `Authorization: Bearer <CRON_SECRET>`
+- `RESEND_API_KEY` and optional `BLOODLINK_ALERT_FROM` — email alerts for emergency invites
+- Optional `BLOODLINK_EMAIL_ALL_INVITES=true` — email on every invite, not only emergencies
+- Optional `BLOODLINK_MAX_REQUESTS_PER_DAY=5` — rate limit request creation
+
+**Prod checklist (P0-1):** Record “schema at **012**” in your runbook after 008–011 are also applied.

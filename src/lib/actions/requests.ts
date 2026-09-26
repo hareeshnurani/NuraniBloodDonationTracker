@@ -9,6 +9,8 @@ import { MATCH_RADIUS_KM } from "@/lib/constants";
 import type { BloodGroup } from "@/lib/constants";
 import { getFacilityById } from "@/lib/facilities";
 import { lookupPincode, isValidPincode } from "@/lib/pincode";
+import { notifyUser } from "@/lib/user-notifications";
+import { assertRequestCreationAllowed } from "@/lib/rate-limit";
 
 async function logAudit(
   actorId: string,
@@ -24,23 +26,6 @@ async function logAudit(
     entity_type: entityType,
     entity_id: entityId,
     metadata,
-  });
-}
-
-async function createNotification(
-  userId: string,
-  type: string,
-  title: string,
-  body: string,
-  payload: Record<string, unknown> = {}
-) {
-  const supabase = createServiceClient();
-  await supabase.from("notifications").insert({
-    user_id: userId,
-    type,
-    title,
-    body,
-    payload,
   });
 }
 
@@ -176,12 +161,17 @@ export async function broadcastRequest(requestId: string) {
         ? ` — ${match.distance_km} km away (community)`
         : ` — ${match.distance_km} km away`;
 
-    await createNotification(
+    const isEmergency = request.priority === "emergency";
+    await notifyUser(
       match.donor_id,
       "new_request",
       `${priorityLabel} blood request`,
       `Blood needed for ${request.patient_name} — ${request.primary_blood_group}${distanceNote}${replacementNote}`,
-      { request_id: requestId, patient_name: request.patient_name }
+      { request_id: requestId, patient_name: request.patient_name },
+      {
+        path: `/donor/invites`,
+        email: isEmergency || process.env.BLOODLINK_EMAIL_ALL_INVITES === "true",
+      }
     );
   }
 }
@@ -191,6 +181,9 @@ export async function createBloodRequest(formData: FormData) {
   if (!profile || profile.status !== "active") {
     return { error: "Not authorized" };
   }
+
+  const rateError = await assertRequestCreationAllowed(profile.id);
+  if (rateError) return { error: rateError };
 
   const supabase = await createClient();
   const replacementGroups = formData.getAll("replacement_groups") as BloodGroup[];
@@ -372,12 +365,13 @@ export async function closeBloodRequest(requestId: string, reason: string) {
         { invitation_id: inv.id, status: "pending" },
         { onConflict: "invitation_id" }
       );
-      await createNotification(
+      await notifyUser(
         inv.donor_id,
         "donation_confirm",
         "Donation confirmation",
         `Did you donate blood for ${request.patient_name}'s request which was accepted by you?`,
-        { request_id: requestId, invitation_id: inv.id, patient_name: request.patient_name }
+        { request_id: requestId, invitation_id: inv.id, patient_name: request.patient_name },
+        { path: "/donor/invites" }
       );
     }
   }
@@ -425,22 +419,24 @@ export async function checkDeadlineWarnings(requestId: string) {
     .update({ extension_prompted_at: new Date().toISOString() })
     .eq("id", requestId);
 
-  await createNotification(
+  await notifyUser(
     request.requester_id,
     "deadline_warning",
     "Deadline approaching",
     `Your request for ${request.patient_name} needs ${request.units_needed - request.units_filled} more unit(s). Extend the deadline?`,
-    { request_id: requestId }
+    { request_id: requestId },
+    { path: `/requests/${requestId}` }
   );
 
   const { data: admins } = await supabase.from("profiles").select("id").eq("role", "admin");
   for (const admin of admins ?? []) {
-    await createNotification(
+    await notifyUser(
       admin.id,
       "deadline_warning",
       "Request deadline approaching",
       `Request for ${request.patient_name} is short on units with deadline near.`,
-      { request_id: requestId }
+      { request_id: requestId },
+      { path: `/admin/requests`, email: false }
     );
   }
 }
@@ -576,12 +572,13 @@ export async function acceptInvitation(invitationId: string) {
       { onConflict: "invitation_id", ignoreDuplicates: true }
     );
 
-    await createNotification(
+    await notifyUser(
       req.requester_id,
       "invite_accepted",
       "Donor confirmed",
       `A donor confirmed for ${req.patient_name}'s request`,
-      { request_id: invitation.request_id, invitation_id: invitationId }
+      { request_id: invitation.request_id, invitation_id: invitationId },
+      { path: `/requests/${invitation.request_id}` }
     );
 
     if (result.status === "fulfilled") {
@@ -596,7 +593,7 @@ export async function acceptInvitation(invitationId: string) {
           { invitation_id: inv.id, status: "pending" },
           { onConflict: "invitation_id" }
         );
-        await createNotification(
+        await notifyUser(
           inv.donor_id,
           "donation_confirm",
           "Donation confirmation",
@@ -605,7 +602,8 @@ export async function acceptInvitation(invitationId: string) {
             request_id: invitation.request_id,
             invitation_id: inv.id,
             patient_name: req.patient_name,
-          }
+          },
+          { path: "/donor/invites" }
         );
       }
     }

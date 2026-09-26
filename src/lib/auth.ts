@@ -52,6 +52,7 @@ export async function requireActiveProfile() {
   if (profile.status === "profile_incomplete") redirect("/onboarding");
   if (profile.status === "pending_approval") redirect("/pending-approval");
   if (profile.status === "rejected") redirect("/rejected");
+  if (profile.status === "suspended") redirect("/suspended");
 
   return { user, profile };
 }

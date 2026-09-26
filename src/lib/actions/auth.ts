@@ -15,12 +15,16 @@ export type RegisterResult =
 export async function registerUser(
   name: string,
   email: string,
-  password: string
+  password: string,
+  acceptedTerms: boolean
 ): Promise<RegisterResult> {
   const trimmedName = name.trim();
   const trimmedEmail = email.trim().toLowerCase();
 
   if (!trimmedName) return { ok: false, error: "Name is required" };
+  if (!acceptedTerms) {
+    return { ok: false, error: "You must accept the Terms and Privacy Policy to sign up." };
+  }
   if (!trimmedEmail || !trimmedEmail.includes("@")) {
     return { ok: false, error: "Enter a valid email address" };
   }
@@ -66,6 +70,11 @@ export async function registerUser(
   if (!data.user) {
     return { ok: false, error: "Could not create account. Please try again." };
   }
+
+  await admin
+    .from("profiles")
+    .update({ terms_accepted_at: new Date().toISOString() })
+    .eq("id", data.user.id);
 
   return { ok: true };
 }

@@ -9,6 +9,7 @@ const adminLinks = [
   { href: "/admin/users", label: "Users" },
   { href: "/admin/requests", label: "Requests" },
   { href: "/admin/audit", label: "Audit" },
+  { href: "/admin/reports", label: "Reports" },
 ];
 
 export function AdminSubNav() {
