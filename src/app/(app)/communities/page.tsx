@@ -5,7 +5,9 @@ import { EmptyState } from "@/components/ui/page-header";
 import { CommunityListRow, CommunityListRowStatic } from "@/components/communities/community-list-row";
 import { GroupsCreateFab } from "@/components/communities/groups-create-fab";
 import { JoinCommunityButton } from "@/components/communities/join-community-button";
-import { Users } from "lucide-react";
+import { InsetListShell } from "@/components/ui/entity-avatar";
+import { Button } from "@/components/ui/button";
+import { Users, Plus } from "lucide-react";
 
 export default async function CommunitiesPage() {
   const { profile } = await requireActiveProfile();
@@ -60,7 +62,7 @@ export default async function CommunitiesPage() {
   return (
     <div className="-mx-4 min-h-[50vh] pb-20 lg:mx-0 lg:pb-0">
       {myCommunities.length > 0 ? (
-        <div className="bg-[var(--surface)] lg:overflow-hidden lg:rounded-[var(--radius-lg)] lg:border lg:border-[var(--separator)]">
+        <InsetListShell>
           {myCommunities.map((c) => {
             const active = activeCountByCommunity.get(c.id) ?? 0;
             const subtitle =
@@ -79,7 +81,7 @@ export default async function CommunitiesPage() {
               />
             );
           })}
-        </div>
+        </InsetListShell>
       ) : (
         <div className="px-4 py-8">
           <EmptyState
@@ -100,7 +102,7 @@ export default async function CommunitiesPage() {
           <p className="px-4 pb-2 text-[12px] font-semibold uppercase tracking-wide text-[var(--label-tertiary)]">
             Discover
           </p>
-          <div className="bg-[var(--surface)] lg:overflow-hidden lg:rounded-[var(--radius-lg)] lg:border lg:border-[var(--separator)]">
+          <InsetListShell>
             {discover.map((c) => (
               <CommunityListRowStatic
                 key={c.id}
@@ -110,16 +112,16 @@ export default async function CommunitiesPage() {
                 trailing={<JoinCommunityButton communityId={c.id} />}
               />
             ))}
-          </div>
+          </InsetListShell>
         </div>
       )}
 
       <div className="hidden lg:block lg:mt-6 lg:px-0">
-        <Link
-          href="/communities/new"
-          className="inline-flex items-center gap-2 rounded-full bg-[#25D366] px-5 py-2.5 text-[14px] font-semibold text-white shadow-sm hover:brightness-105"
-        >
-          New group
+        <Link href="/communities/new">
+          <Button>
+            <Plus className="mr-1.5 h-4 w-4" />
+            New group
+          </Button>
         </Link>
       </div>
 

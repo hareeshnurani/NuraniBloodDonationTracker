@@ -11,7 +11,7 @@ export function ReportThreadButton({
   variant = "default",
 }: {
   threadId: string;
-  variant?: "default" | "onDark";
+  variant?: "default" | "header";
 }) {
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
@@ -31,20 +31,18 @@ export function ReportThreadButton({
 
   if (done) {
     return (
-      <span className={cn("text-[12px]", variant === "onDark" ? "text-white/80" : "text-[var(--label-secondary)]")}>
-        Reported
-      </span>
+      <span className="text-[12px] text-[var(--label-secondary)]">Reported</span>
     );
   }
 
-  if (variant === "onDark") {
+  if (variant === "header") {
     return (
       <button
         type="button"
         onClick={report}
         disabled={loading}
         aria-label="Report conversation"
-        className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-white/10 disabled:opacity-50"
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[var(--label-secondary)] transition-colors hover:bg-[var(--surface-secondary)] hover:text-[var(--label)] disabled:opacity-50"
       >
         <Flag className="h-5 w-5" />
       </button>

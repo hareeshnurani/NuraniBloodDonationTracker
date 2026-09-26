@@ -1,10 +1,10 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { requireActiveProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getRequesterDonorThreads } from "@/lib/chat-inbox";
 import { ChatDonorListRow } from "@/components/chat/chat-list-row";
 import { EmptyState } from "@/components/ui/page-header";
+import { InsetListShell, InsetScreenHeader } from "@/components/ui/entity-avatar";
 import { MessageCircle } from "lucide-react";
 
 export default async function ChatRequestHubPage({
@@ -48,29 +48,27 @@ export default async function ChatRequestHubPage({
   const donorThreads = await getRequesterDonorThreads(supabase, requestId, profile.id);
 
   return (
-    <div className="-mx-4 space-y-4 lg:mx-0">
-      <header className="flex items-center gap-2 border-b border-[var(--separator)] bg-[var(--surface)] px-2 py-2 lg:rounded-t-[var(--radius-lg)]">
-        <Link
-          href="/chat"
-          className="flex h-10 w-10 items-center justify-center rounded-full text-[var(--accent)] hover:bg-[var(--surface-secondary)]"
-          aria-label="Back to chats"
-        >
-          <span className="text-[28px] leading-none font-light">‹</span>
-        </Link>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-[17px] font-semibold text-[var(--label)]">{request.patient_name}</p>
-          <p className="text-[13px] text-[var(--label-secondary)]">Select a donor to message</p>
-        </div>
-      </header>
+    <div className="-mx-4 space-y-0 lg:mx-0">
+      <InsetScreenHeader
+        backHref="/chat"
+        backLabel="Back to chats"
+        title={request.patient_name}
+        subtitle="Select a donor to message"
+      />
 
       {donorThreads.length > 0 ? (
-        <div className="bg-[var(--surface)] lg:overflow-hidden lg:rounded-b-[var(--radius-lg)] lg:border lg:border-t-0 lg:border-[var(--separator)]">
+        <InsetListShell className="lg:rounded-t-none lg:border-t-0">
           {donorThreads.map((d) => (
-            <ChatDonorListRow key={d.threadId} donorName={d.donorName} href={`/chat/${d.threadId}`} />
+            <ChatDonorListRow
+              key={d.threadId}
+              donorId={d.donorId}
+              donorName={d.donorName}
+              href={`/chat/${d.threadId}`}
+            />
           ))}
-        </div>
+        </InsetListShell>
       ) : (
-        <div className="px-4">
+        <div className="px-4 py-8">
           <EmptyState
             icon={<MessageCircle className="h-6 w-6" />}
             title="No donor chats yet"
