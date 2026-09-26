@@ -4,6 +4,16 @@ BloodLink always writes to the in-app **`notifications`** table. **P0-2 Phase 1*
 
 SMS / WhatsApp / Web Push = **Phase 2** (not in this runbook).
 
+### Checklist (check off as you go)
+
+- [ ] Step 1 — Resend account + API key (`re_...`)
+- [ ] Step 2 — `BLOODLINK_ALERT_FROM` chosen (test vs domain)
+- [ ] Step 3 — Vercel env vars + **Redeploy**
+- [ ] Step 4 — Optional: `node scripts/test-resend-email.mjs your@email.com`
+- [ ] Step 5 — Live **Emergency** request → donor email + in-app alert
+- [ ] Step 6 — Resend dashboard shows **Delivered**
+- [ ] Step 7 — Mark P0-2 done in gap tracker
+
 ---
 
 ## What sends email today (after env is set)
