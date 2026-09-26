@@ -3,7 +3,7 @@
 Use this document to track fixing the gaps identified in the **critical product/ops review** (September 2026).  
 Check boxes as work completes: `- [ ]` → `- [x]`.
 
-**Related docs:** [P0-1_PRODUCTION_MIGRATIONS.md](./P0-1_PRODUCTION_MIGRATIONS.md) · [P0-2_EMAIL_ALERTS.md](./P0-2_EMAIL_ALERTS.md) · [PROJECT_HANDOFF.md](./PROJECT_HANDOFF.md) · [SUPABASE_SQL_TO_RUN.md](./SUPABASE_SQL_TO_RUN.md) · [SUPABASE_SMTP.md](./SUPABASE_SMTP.md) · [LAUNCH_AND_SUSTAINABILITY.md](./LAUNCH_AND_SUSTAINABILITY.md)
+**Related docs:** [P0-1_PRODUCTION_MIGRATIONS.md](./P0-1_PRODUCTION_MIGRATIONS.md) · [P0-2_EMAIL_ALERTS.md](./P0-2_EMAIL_ALERTS.md) · [P0-7_TESTS_AND_MONITORING.md](./P0-7_TESTS_AND_MONITORING.md) · [PROJECT_HANDOFF.md](./PROJECT_HANDOFF.md) · [SUPABASE_SQL_TO_RUN.md](./SUPABASE_SQL_TO_RUN.md) · [SUPABASE_SMTP.md](./SUPABASE_SMTP.md) · [LAUNCH_AND_SUSTAINABILITY.md](./LAUNCH_AND_SUSTAINABILITY.md)
 
 ---
 
@@ -136,7 +136,7 @@ Check boxes as work completes: `- [ ]` → `- [x]`.
 |--|--|
 | **Gap** | No automated tests; production discovers RSC/RLS/RPC regressions first. |
 | **Overcome** | Staging Supabase + smoke E2E (signup → request → invite); error monitoring (e.g. Sentry) on Vercel. |
-| **Status** | **Partial** — Vitest location smoke + `docs/OPS_BACKUP_STAGING.md`; add CI/Sentry on your pipeline |
+| **Status** | **Partial → CI in PR** — GitHub Actions on PR/`main`; staging + Sentry optional per [P0-7_TESTS_AND_MONITORING.md](./P0-7_TESTS_AND_MONITORING.md) |
 | **Owner** | |
 | **Verification** | CI runs smoke on PR; alert on `/home` server errors. |
 | **Notes** | |
