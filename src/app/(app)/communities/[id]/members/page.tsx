@@ -2,8 +2,9 @@ import { notFound } from "next/navigation";
 import { requireActiveProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/card";
-import { EntityAvatar, InsetListShell, InsetScreenHeader } from "@/components/ui/entity-avatar";
+import { InsetListShell, InsetScreenHeader } from "@/components/ui/entity-avatar";
 import { CommunityMembersAddButton } from "@/components/communities/community-members-add";
+import { CommunityMemberRow } from "@/components/communities/community-member-row";
 import { cn } from "@/lib/utils";
 
 export default async function CommunityMembersPage({
@@ -45,20 +46,6 @@ export default async function CommunityMembersPage({
   const admins = members?.filter((m) => m.is_admin) ?? [];
   const others = members?.filter((m) => !m.is_admin) ?? [];
 
-  function MemberRow({ userId, name, isAdmin }: { userId: string; name: string; isAdmin: boolean }) {
-    return (
-      <div className="flex items-center gap-3 border-b border-[var(--separator)] px-4 py-3 last:border-b-0">
-        <EntityAvatar id={userId} name={name} size="md" />
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-[16px] font-medium text-[var(--label)]">{name}</p>
-          {isAdmin && (
-            <p className="text-[12px] font-medium text-[var(--accent)]">Group admin</p>
-          )}
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="-mx-4 lg:mx-0">
       <InsetScreenHeader
@@ -82,7 +69,17 @@ export default async function CommunityMembersPage({
             </p>
             {admins.map((m) => {
               const p = m.profiles as unknown as { name: string };
-              return <MemberRow key={m.user_id} userId={m.user_id} name={p.name} isAdmin />;
+              return (
+                <CommunityMemberRow
+                  key={m.user_id}
+                  communityId={id}
+                  userId={m.user_id}
+                  name={p.name}
+                  isAdmin
+                  canManageRoles={isCommunityAdmin}
+                  isSelf={m.user_id === profile.id}
+                />
+              );
             })}
           </>
         )}
@@ -98,7 +95,17 @@ export default async function CommunityMembersPage({
             </p>
             {others.map((m) => {
               const p = m.profiles as unknown as { name: string };
-              return <MemberRow key={m.user_id} userId={m.user_id} name={p.name} isAdmin={false} />;
+              return (
+                <CommunityMemberRow
+                  key={m.user_id}
+                  communityId={id}
+                  userId={m.user_id}
+                  name={p.name}
+                  isAdmin={false}
+                  canManageRoles={isCommunityAdmin}
+                  isSelf={m.user_id === profile.id}
+                />
+              );
             })}
           </>
         )}
