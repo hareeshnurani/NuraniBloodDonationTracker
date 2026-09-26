@@ -10,7 +10,6 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { UseMyLocationToggle } from "@/components/donor/use-my-location-toggle";
 import { UseMyLocationAutoRefresh } from "@/components/donor/use-my-location-auto-refresh";
-import { DonationHistory } from "@/components/donor/donation-history";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
@@ -23,7 +22,7 @@ import {
 } from "@/lib/profile-location";
 import { BLOOD_GROUPS } from "@/lib/constants";
 import { getEligibleDate, isDonorEligible } from "@/lib/utils";
-import { User, Mail, Droplets, Calendar, LogOut } from "lucide-react";
+import { User, Mail, Droplets, Calendar, LogOut, ClipboardList, History } from "lucide-react";
 import { format } from "date-fns";
 import type { Profile, DonorProfile } from "@/lib/types";
 
@@ -178,7 +177,32 @@ export default function ProfilePage() {
         </div>
       </GroupedSection>
 
-      {donor && <DonationHistory />}
+      <GroupedSection title="History">
+        <GroupedRow href="/profile/requests" showChevron>
+          <GroupedRowIcon color="red">
+            <ClipboardList className="h-4 w-4" />
+          </GroupedRowIcon>
+          <div>
+            <p className="text-[15px] font-medium text-[var(--label)]">Request history</p>
+            <p className="text-[13px] text-[var(--label-secondary)]">
+              All blood requests you have raised
+            </p>
+          </div>
+        </GroupedRow>
+        {donor && (
+          <GroupedRow href="/profile/donations" showChevron>
+            <GroupedRowIcon color="green">
+              <History className="h-4 w-4" />
+            </GroupedRowIcon>
+            <div>
+              <p className="text-[15px] font-medium text-[var(--label)]">Donation history</p>
+              <p className="text-[13px] text-[var(--label-secondary)]">
+                Completed donations only — not declined or not-donated
+              </p>
+            </div>
+          </GroupedRow>
+        )}
+      </GroupedSection>
 
       {donor && (
         <GroupedSection title="Notification Preferences">
