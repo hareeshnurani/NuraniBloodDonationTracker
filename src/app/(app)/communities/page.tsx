@@ -1,12 +1,11 @@
 import Link from "next/link";
 import { requireActiveProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { PageHeader, SectionHeader, EmptyState } from "@/components/ui/page-header";
-import { GroupedSection, GroupedRow, GroupedRowIcon } from "@/components/ui/grouped-list";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/card";
-import { Users, Plus, Globe } from "lucide-react";
+import { EmptyState } from "@/components/ui/page-header";
+import { CommunityListRow, CommunityListRowStatic } from "@/components/communities/community-list-row";
+import { GroupsCreateFab } from "@/components/communities/groups-create-fab";
 import { JoinCommunityButton } from "@/components/communities/join-community-button";
+import { Users } from "lucide-react";
 
 export default async function CommunitiesPage() {
   const { profile } = await requireActiveProfile();
@@ -14,16 +13,40 @@ export default async function CommunitiesPage() {
 
   const { data: memberships } = await supabase
     .from("community_members")
-    .select("community_id, is_admin, communities(*)")
-    .eq("user_id", profile.id);
+    .select("community_id, is_admin, joined_at, communities(*)")
+    .eq("user_id", profile.id)
+    .order("joined_at", { ascending: false });
 
   const myCommunities =
     memberships?.map((m) => {
-      const c = m.communities as unknown as { id: string; name: string; description: string | null; visibility: string };
+      const c = m.communities as unknown as {
+        id: string;
+        name: string;
+        description: string | null;
+        visibility: string;
+      };
       return { ...c, is_admin: m.is_admin };
     }) ?? [];
 
-  const myIds = new Set(myCommunities.map((c) => c.id));
+  const myIds = myCommunities.map((c) => c.id);
+
+  let activeCountByCommunity = new Map<string, number>();
+  if (myIds.length > 0) {
+    const { data: requestLinks } = await supabase
+      .from("request_communities")
+      .select("community_id, blood_requests(status)")
+      .in("community_id", myIds);
+
+    for (const rl of requestLinks ?? []) {
+      const req = rl.blood_requests as unknown as { status: string } | null;
+      if (req && ["open", "partially_filled"].includes(req.status)) {
+        activeCountByCommunity.set(
+          rl.community_id,
+          (activeCountByCommunity.get(rl.community_id) ?? 0) + 1
+        );
+      }
+    }
+  }
 
   const { data: publicCommunities } = await supabase
     .from("communities")
@@ -32,87 +55,75 @@ export default async function CommunitiesPage() {
     .order("created_at", { ascending: false })
     .limit(20);
 
-  const discover =
-    publicCommunities?.filter((c) => !myIds.has(c.id)) ?? [];
+  const discover = publicCommunities?.filter((c) => !myIds.includes(c.id)) ?? [];
 
   return (
-    <div className="space-y-8">
-      <PageHeader
-        title="Groups"
-        subtitle="Your communities — tap one to view requests and members"
-        action={
-          <Link href="/communities/new">
-            <Button>
-              <Plus className="mr-1.5 h-4 w-4" />
-              Create
-            </Button>
-          </Link>
-        }
-      />
+    <div className="-mx-4 min-h-[50vh] pb-20 lg:mx-0 lg:pb-0">
+      {myCommunities.length > 0 ? (
+        <div className="bg-[var(--surface)] lg:overflow-hidden lg:rounded-[var(--radius-lg)] lg:border lg:border-[var(--separator)]">
+          {myCommunities.map((c) => {
+            const active = activeCountByCommunity.get(c.id) ?? 0;
+            const subtitle =
+              active > 0
+                ? `${active} active request${active !== 1 ? "s" : ""} · ${c.visibility === "public" ? "Public" : "Private"}`
+                : c.description?.trim() ||
+                  `${c.visibility === "public" ? "Public group" : "Private group"}${c.is_admin ? " · You’re admin" : ""}`;
 
-      <section>
-        <SectionHeader title="My Communities" />
-        {myCommunities.length > 0 ? (
-          <GroupedSection>
-            {myCommunities.map((c) => (
-              <GroupedRow key={c.id} href={`/communities/${c.id}`} showChevron>
-                <GroupedRowIcon color="blue">
-                  <Users className="h-4 w-4" />
-                </GroupedRowIcon>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[15px] font-medium text-[var(--label)]">{c.name}</span>
-                    {c.is_admin && <Badge>Admin</Badge>}
-                  </div>
-                  {c.description && (
-                    <p className="text-[13px] text-[var(--label-secondary)] mt-0.5 line-clamp-1">
-                      {c.description}
-                    </p>
-                  )}
-                </div>
-              </GroupedRow>
-            ))}
-          </GroupedSection>
-        ) : (
+            return (
+              <CommunityListRow
+                key={c.id}
+                id={c.id}
+                name={c.name}
+                subtitle={subtitle}
+                href={`/communities/${c.id}`}
+              />
+            );
+          })}
+        </div>
+      ) : (
+        <div className="px-4 py-8">
           <EmptyState
             icon={<Users className="h-6 w-6" />}
-            title="No communities yet"
-            description="Create a community or join a public one below."
+            title="No groups yet"
+            description="Create a group or join a public one below."
             action={
-              <Link href="/communities/new">
-                <Button>
-                  <Plus className="mr-1.5 h-4 w-4" />
-                  Create community
-                </Button>
+              <Link href="/communities/new" className="text-[15px] font-medium text-[var(--accent)]">
+                Create your first group →
               </Link>
             }
           />
-        )}
-      </section>
+        </div>
+      )}
 
       {discover.length > 0 && (
-        <section>
-          <SectionHeader title="Discover Public Communities" />
-          <GroupedSection>
+        <div className="mt-6">
+          <p className="px-4 pb-2 text-[12px] font-semibold uppercase tracking-wide text-[var(--label-tertiary)]">
+            Discover
+          </p>
+          <div className="bg-[var(--surface)] lg:overflow-hidden lg:rounded-[var(--radius-lg)] lg:border lg:border-[var(--separator)]">
             {discover.map((c) => (
-              <GroupedRow key={c.id}>
-                <GroupedRowIcon color="green">
-                  <Globe className="h-4 w-4" />
-                </GroupedRowIcon>
-                <div className="flex-1 min-w-0">
-                  <span className="text-[15px] font-medium text-[var(--label)]">{c.name}</span>
-                  {c.description && (
-                    <p className="text-[13px] text-[var(--label-secondary)] mt-0.5 line-clamp-1">
-                      {c.description}
-                    </p>
-                  )}
-                </div>
-                <JoinCommunityButton communityId={c.id} />
-              </GroupedRow>
+              <CommunityListRowStatic
+                key={c.id}
+                id={c.id}
+                name={c.name}
+                subtitle={c.description?.trim() || "Public group · tap Join"}
+                trailing={<JoinCommunityButton communityId={c.id} />}
+              />
             ))}
-          </GroupedSection>
-        </section>
+          </div>
+        </div>
       )}
+
+      <div className="hidden lg:block lg:mt-6 lg:px-0">
+        <Link
+          href="/communities/new"
+          className="inline-flex items-center gap-2 rounded-full bg-[#25D366] px-5 py-2.5 text-[14px] font-semibold text-white shadow-sm hover:brightness-105"
+        >
+          New group
+        </Link>
+      </div>
+
+      <GroupsCreateFab />
     </div>
   );
 }
