@@ -2,17 +2,15 @@ import { notFound } from "next/navigation";
 import { requireActiveProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/components/ui/page-header";
-import { GroupedSection, GroupedRow, GroupedRowIcon } from "@/components/ui/grouped-list";
-import { Badge } from "@/components/ui/card";
+import { GroupedSection } from "@/components/ui/grouped-list";
+import { CommunityRequestRow } from "@/components/communities/community-request-row";
 import { CommunityDetailHeader } from "@/components/communities/community-detail-header";
 import { CommunityAdminCollapsible } from "@/components/communities/community-admin-collapsible";
 import {
   CommunityBottomActions,
   CommunityMembersEntry,
 } from "@/components/communities/community-bottom-actions";
-import { PRIORITY_LABELS } from "@/lib/constants";
 import { Droplets } from "lucide-react";
-import { format } from "date-fns";
 
 export default async function CommunityDetailPage({
   params,
@@ -53,7 +51,7 @@ export default async function CommunityDetailPage({
     supabase
       .from("request_communities")
       .select(
-        "request_id, blood_requests(id, status, patient_name, primary_blood_group, priority, units_filled, units_needed, deadline)"
+        "request_id, blood_requests(id, status, patient_name, primary_blood_group, priority, units_filled, units_needed, deadline, hospital_notes, location_district, location_state, pincode)"
       )
       .eq("community_id", id)
       .order("created_at", { ascending: false })
@@ -77,6 +75,10 @@ export default async function CommunityDetailPage({
             units_filled: number;
             units_needed: number;
             deadline: string;
+            hospital_notes: string | null;
+            location_district: string | null;
+            location_state: string | null;
+            pincode: string | null;
           } | null
       )
       .filter((r) => r && ["open", "partially_filled"].includes(r.status)) ?? [];
@@ -111,25 +113,7 @@ export default async function CommunityDetailPage({
         {activeRequests.length > 0 ? (
           <GroupedSection>
             {activeRequests.map((r) => (
-              <GroupedRow key={r!.id} href={`/requests/${r!.id}`} showChevron>
-                <GroupedRowIcon color="red">
-                  <Droplets className="h-4 w-4" />
-                </GroupedRowIcon>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-[15px] font-medium text-[var(--label)]">{r!.patient_name}</span>
-                    <Badge variant={r!.priority === "emergency" ? "emergency" : "default"}>
-                      {PRIORITY_LABELS[r!.priority]}
-                    </Badge>
-                  </div>
-                  <p className="mt-0.5 text-[13px] text-[var(--label-secondary)]">
-                    {r!.primary_blood_group} · {r!.units_filled}/{r!.units_needed} units
-                  </p>
-                  <p className="mt-0.5 text-[12px] text-[var(--label-tertiary)]">
-                    Deadline {format(new Date(r!.deadline), "MMM d, h:mm a")}
-                  </p>
-                </div>
-              </GroupedRow>
+              <CommunityRequestRow key={r!.id} request={r!} />
             ))}
           </GroupedSection>
         ) : (

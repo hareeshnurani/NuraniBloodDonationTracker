@@ -9,6 +9,7 @@ import { RequestActions } from "@/components/requests/request-actions";
 import { ActiveRequestActions } from "@/components/donor/active-request-actions";
 import { REQUEST_STATUS_LABELS, PRIORITY_LABELS } from "@/lib/constants";
 import { shouldPromptDeadlineExtension } from "@/lib/utils";
+import { RequestShareButton } from "@/components/requests/request-share-button";
 
 export default async function RequestDetailPage({
   params,
@@ -74,16 +75,36 @@ export default async function RequestDetailPage({
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <div>
-        <Link href="/home" className="text-sm text-red-600 hover:underline">← Back</Link>
-        <h1 className="mt-2 text-2xl font-bold text-gray-900">{request.patient_name}</h1>
-        <div className="mt-2 flex flex-wrap gap-2">
-          <Badge variant={request.priority === "emergency" ? "emergency" : "default"}>
-            {PRIORITY_LABELS[request.priority]}
-          </Badge>
-          <Badge>{REQUEST_STATUS_LABELS[request.status]}</Badge>
-          <Badge>{request.primary_blood_group}</Badge>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <Link href="/home" className="text-sm text-red-600 hover:underline">← Back</Link>
+          <h1 className="mt-2 text-2xl font-bold text-gray-900">{request.patient_name}</h1>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Badge variant={request.priority === "emergency" ? "emergency" : "default"}>
+              {PRIORITY_LABELS[request.priority]}
+            </Badge>
+            <Badge>{REQUEST_STATUS_LABELS[request.status]}</Badge>
+            <Badge>{request.primary_blood_group}</Badge>
+          </div>
         </div>
+        {isOpen && (
+          <RequestShareButton
+            request={{
+              id: request.id,
+              patient_name: request.patient_name,
+              primary_blood_group: request.primary_blood_group,
+              priority: request.priority,
+              units_needed: request.units_needed,
+              units_filled: request.units_filled,
+              deadline: request.deadline,
+              status: request.status,
+              hospital_notes: request.hospital_notes,
+              location_district: request.location_district,
+              location_state: request.location_state,
+              pincode: request.pincode,
+            }}
+          />
+        )}
       </div>
 
       <Card>
