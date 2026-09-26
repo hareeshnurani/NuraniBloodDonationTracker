@@ -23,7 +23,7 @@ import {
 } from "@/lib/profile-location";
 import { BLOOD_GROUPS } from "@/lib/constants";
 import { getEligibleDate, isDonorEligible } from "@/lib/utils";
-import { User, Mail, Droplets, Calendar } from "lucide-react";
+import { User, Mail, Droplets, Calendar, LogOut } from "lucide-react";
 import { format } from "date-fns";
 import type { Profile, DonorProfile } from "@/lib/types";
 
@@ -64,6 +64,12 @@ export default function ProfilePage() {
     }
     load();
   }, []);
+
+  async function handleLogout() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    window.location.href = "/login";
+  }
 
   async function handleNotifyPreference(checked: boolean) {
     const formData = new FormData();
@@ -181,7 +187,7 @@ export default function ProfilePage() {
               checked={donor.notify_community_only ?? false}
               onChange={handleNotifyPreference}
               label="Community-only notifications"
-              description="Only get notified for requests in your communities. Emergency broadcasts outside your groups will not alert you when this is on—you can still open Donor and accept any matching request."
+              description="Only get notified for requests in your communities. Emergency broadcasts outside your groups will not alert you when this is on—you can still open Donate and accept any matching request."
             />
           </div>
         </GroupedSection>
@@ -240,6 +246,15 @@ export default function ProfilePage() {
           </form>
         </GroupedSection>
       )}
+
+      <GroupedSection>
+        <div className="p-4">
+          <Button type="button" variant="secondary" className="w-full" onClick={handleLogout}>
+            <LogOut className="mr-2 h-4 w-4" />
+            Log out
+          </Button>
+        </div>
+      </GroupedSection>
     </div>
   );
 }

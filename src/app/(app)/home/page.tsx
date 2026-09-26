@@ -10,14 +10,12 @@ import { Button } from "@/components/ui/button";
 import { PageHeader, SectionHeader, EmptyState } from "@/components/ui/page-header";
 import { GroupedSection, GroupedRow, GroupedRowIcon } from "@/components/ui/grouped-list";
 import { DonorHomeStatusControls } from "@/components/donor/donor-home-status-controls";
-import { DonorInviteCarousel } from "@/components/donor/donor-invite-carousel";
-import { getDonorHomeFeed } from "@/lib/donor-feed";
 import { UseMyLocationAutoRefresh } from "@/components/donor/use-my-location-auto-refresh";
 import { PendingConfirmations } from "@/components/donor/pending-confirmations";
 import { PinReorderList } from "@/components/communities/pin-reorder-list";
 import { REQUEST_STATUS_LABELS, PRIORITY_LABELS } from "@/lib/constants";
 import { getEligibleDate, isDonorEligible } from "@/lib/utils";
-import { Droplets, Plus, AlertCircle, Heart, ChevronRight, Users, MapPin } from "lucide-react";
+import { Droplets, Plus, AlertCircle, ChevronRight, Users, MapPin } from "lucide-react";
 import { format } from "date-fns";
 
 export default async function HomePage() {
@@ -125,10 +123,15 @@ export default async function HomePage() {
   const gpsNeedsRefresh =
     (profile.use_my_location ?? false) && !isGpsTimestampFresh(profile.gps_updated_at);
 
-  const donorFeed =
-    donorProfile
-      ? await getDonorHomeFeed(supabase, profile, donorProfile)
-      : { cards: [], matchingActiveCount: 0, pendingCount: 0 };
+  const pendingInviteCount = donorProfile
+    ? (
+        await supabase
+          .from("donor_invitations")
+          .select("*", { count: "exact", head: true })
+          .eq("donor_id", profile.id)
+          .eq("response", "pending")
+      ).count ?? 0
+    : 0;
 
   const firstName = profile.name.split(" ")[0];
   const donatedUnits = livesSaved ?? 0;
@@ -297,37 +300,23 @@ export default async function HomePage() {
         )}
       </section>
 
-      {donorProfile && (
+      {donorProfile && pendingInviteCount > 0 && (
         <section>
-          <SectionHeader
-            title="Pending Invites"
-            action={
-              donorFeed.pendingCount > 0 ? (
-                <Link href="/donor/invites" className="text-[15px] font-medium text-[var(--accent)] flex items-center gap-0.5">
-                  See all <ChevronRight className="h-4 w-4" />
-                </Link>
-              ) : undefined
-            }
-          />
-          {donorFeed.cards.length > 0 ? (
-            <DonorInviteCarousel cards={donorFeed.cards} />
-          ) : (
-            <EmptyState
-              icon={<Heart className="h-6 w-6" />}
-              title="No pending invites"
-              description={
-                donorProfile.is_available && hasLocation
-                  ? "You’ll see matching requests here when someone needs your blood group nearby."
-                  : "Turn on availability and set your location to receive donation requests."
-              }
-            />
-          )}
-          {donorFeed.matchingActiveCount > 0 && donorFeed.pendingCount === 0 && (
-            <p className="mt-3 text-center text-[13px] text-[var(--label-secondary)]">
-              {donorFeed.matchingActiveCount} open request
-              {donorFeed.matchingActiveCount !== 1 ? "s" : ""} match your blood group — invites appear when you’re in range or in a linked community.
-            </p>
-          )}
+          <GroupedSection>
+            <GroupedRow href="/donate" showChevron>
+              <GroupedRowIcon color="red">
+                <Droplets className="h-4 w-4" />
+              </GroupedRowIcon>
+              <div className="min-w-0 flex-1">
+                <p className="text-[15px] font-medium text-[var(--label)]">
+                  {pendingInviteCount} pending donation invite{pendingInviteCount !== 1 ? "s" : ""}
+                </p>
+                <p className="mt-0.5 text-[13px] text-[var(--label-secondary)]">
+                  Open Donate to respond — nearby and wider requests.
+                </p>
+              </div>
+            </GroupedRow>
+          </GroupedSection>
         </section>
       )}
     </div>

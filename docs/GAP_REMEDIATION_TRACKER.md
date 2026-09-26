@@ -189,7 +189,7 @@ Check boxes as work completes: `- [ ]` → `- [x]`.
 
 | | |
 |--|--|
-| **Status** | **Done** — suspend/reinstate, force-close request, verified donor flag |
+| **Status** | **Done** — suspend/reinstate, force-close request, verified donor flag; **Admin v1** dashboard/filters on `main` |
 | **Owner** | |
 | **Verification** | Admin can suspend spam account; action appears in audit log. |
 
