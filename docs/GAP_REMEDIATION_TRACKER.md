@@ -12,7 +12,7 @@ Check boxes as work completes: `- [ ]` → `- [x]`.
 | Field | Meaning |
 |--------|---------|
 | **Priority** | P0 = before real users at scale · P1 = soon after pilot · P2 = before regional scale |
-| **Status** | `Not started` · `In progress` · `Blocked` · `Done` |
+| **Status** | `Not started` · `In progress` · `Blocked` · `Done` · **`Partial`** (delivered in code/docs; ops or polish still open) |
 | **Owner** | Who is driving the item |
 | **Target** | Optional date or milestone (e.g. “Kerala pilot”) |
 
@@ -26,44 +26,46 @@ Check boxes as work completes: `- [ ]` → `- [x]`.
 
 ## Summary dashboard
 
-| Priority | Total | Done | In progress | Not started |
-|----------|------:|-----:|------------:|------------:|
-| P0 | 7 | 5 | 0 | 2 |
-| P1 | 6 | 5 | 0 | 1 |
-| P2 | 8 | 2 | 0 | 6 |
+| Priority | Total | Done | Partial | Not started |
+|----------|------:|-----:|--------:|------------:|
+| P0 | 7 | 4 | 3 | 0 |
+| P1 | 6 | 4 | 2 | 0 |
+| P2 | 8 | 1 | 5 | 2 |
 
-*Update counts manually when you check items off.*
+**Done** = closed for pilot · **Partial** = code or docs in place, ops/verification still open · **Not started** = no meaningful delivery yet.
+
+*Last reconciled: 2026-09-26 (prod schema **012**, cron, CI, admin v1; Resend domain pending).*
 
 ---
 
 ## P0 — Address now (pilot / real patients & donors)
 
-### P0-1 — Production database drift (migrations 008–011)
+### P0-1 — Production database drift (migrations 008–012)
 
-- [ ] **Done** *(you run SQL on prod)*
+- [x] **Done** *(prod schema at **012**)*
 
 | | |
 |--|--|
 | **Gap** | Prod Supabase schema can lag behind app code (RLS, columns, RPC casts). |
 | **Overcome** | Apply 008–**012** on prod; record “schema at 012”; gate releases on migration checklist. |
-| **Status** | **Blocked on operator** — code + `docs/SUPABASE_SQL_TO_RUN.md` ready |
+| **Status** | **Done** — migrations **008–012** applied on production; keep using [P0-1_PRODUCTION_MIGRATIONS.md](./P0-1_PRODUCTION_MIGRATIONS.md) before each release |
 | **Owner** | |
 | **Verification** | SQL applied; create request, accept invite, communities, location toggle all work on prod. |
-| **Notes** | SQL: `docs/SUPABASE_SQL_TO_RUN.md`, `supabase/migrations/008`–`011`. |
+| **Notes** | SQL: `docs/SUPABASE_SQL_TO_RUN.md`, `supabase/migrations/008`–`012`. |
 
 ---
 
 ### P0-2 — Out-of-band alerts (not in-app only)
 
-- [x] **Done** *(email phase; SMS later)*
+- [ ] **Done** *(partial — in-app + email code on `main`; prod email pending)*
 
 | | |
 |--|--|
 | **Gap** | Emergency requests rely on users opening the app; in-app notifications alone are insufficient. |
 | **Overcome** | Phase 1: email (and/or SMS) for emergency requests + new donor invites. Phase 2: web push for available donors. |
-| **Status** | **Done (email)** — set `RESEND_API_KEY`; emergencies email donors; SMS/WhatsApp still open |
+| **Status** | **Partial** — in-app alerts live; Resend **domain** + `RESEND_API_KEY` / `BLOODLINK_ALERT_FROM` on Vercel + live emergency email test still open ([P0-2_EMAIL_ALERTS.md](./P0-2_EMAIL_ALERTS.md)); SMS/WhatsApp = Phase 2 |
 | **Owner** | |
-| **Verification** | Test donor receives email/SMS within 2 min of emergency broadcast on staging. |
+| **Verification** | Test donor receives email within 2 min of emergency broadcast on production; Resend shows **Delivered**. |
 | **Notes** | Handoff § notifications; consider Resend + Twilio/msg91. |
 
 ---
@@ -130,15 +132,15 @@ Check boxes as work completes: `- [ ]` → `- [x]`.
 
 ### P0-7 — Tests & monitoring
 
-- [x] **Done** *(smoke tests; Sentry optional)*
+- [ ] **Done** *(partial — CI + unit tests; staging E2E + Sentry optional)*
 
 | | |
 |--|--|
 | **Gap** | No automated tests; production discovers RSC/RLS/RPC regressions first. |
 | **Overcome** | Staging Supabase + smoke E2E (signup → request → invite); error monitoring (e.g. Sentry) on Vercel. |
-| **Status** | **Partial → CI in PR** — GitHub Actions on PR/`main`; staging + Sentry optional per [P0-7_TESTS_AND_MONITORING.md](./P0-7_TESTS_AND_MONITORING.md) |
+| **Status** | **Partial** — GitHub Actions (`npm test` + `npm run build`) on PR/`main`; staging Supabase + full smoke E2E + Sentry still optional per [P0-7_TESTS_AND_MONITORING.md](./P0-7_TESTS_AND_MONITORING.md) |
 | **Owner** | |
-| **Verification** | CI runs smoke on PR; alert on `/home` server errors. |
+| **Verification** | CI runs on PR; optional staging E2E; optional alert on `/home` server errors. |
 | **Notes** | |
 
 ---
@@ -233,13 +235,13 @@ Check boxes as work completes: `- [ ]` → `- [x]`.
 
 ### P2-2 — Donor / requester verification badges
 
-- [ ] **Done**
+- [ ] **Done** *(partial — admin `verified_donor` flag; public badges TBD)*
 
 | | |
 |--|--|
 | **Gap** | No trust signal for repeat verified donors or hospitals. |
 | **Overcome** | Manual “verified donor” flag; optional hospital-affiliated requester (admin-set). |
-| **Status** | Not started |
+| **Status** | **Partial** — admin can set `verified_donor` (migration 012); visible badges / hospital-affiliated requester UI not built |
 
 ---
 
@@ -275,21 +277,25 @@ Check boxes as work completes: `- [ ]` → `- [x]`.
 
 ### P2-6 — Backup & disaster recovery
 
-- [ ] **Done**
+- [ ] **Done** *(partial — runbook only)*
 
 | | |
 |--|--|
-| **Status** | **Documented** — see `docs/OPS_BACKUP_STAGING.md` |
+| **Gap** | No tested backup/restore path if Supabase or Vercel data is lost. |
+| **Overcome** | Document and periodically test backups + restore drill. |
+| **Status** | **Partial** — see `docs/OPS_BACKUP_STAGING.md`; restore drill not scheduled |
 
 ---
 
 ### P2-7 — Staging environment
 
-- [ ] **Done**
+- [ ] **Done** *(partial — runbook only)*
 
 | | |
 |--|--|
-| **Status** | **Documented** — see `docs/OPS_BACKUP_STAGING.md` |
+| **Gap** | Changes ship straight to production without a safe rehearsal environment. |
+| **Overcome** | Separate Supabase project + Vercel preview env with smoke tests before prod. |
+| **Status** | **Partial** — see `docs/OPS_BACKUP_STAGING.md`; dedicated staging project not provisioned |
 
 ---
 
@@ -319,6 +325,7 @@ For **how to launch**, **notifications**, and **ethical funding**, see [LAUNCH_A
 
 | Date | Item | Change |
 |------|------|--------|
+| 2026-09-26 | Tracker | Summary dashboard + checkboxes reconciled with prod (schema **012**, cron, CI, admin v1; P0-2 email ops pending) |
 | 2026-09-26 | P0–P1 | Gap remediation code batch (migration 012, cron, legal, alerts, admin tools) |
 
 ---
