@@ -10,6 +10,7 @@ import type { BloodGroup } from "@/lib/constants";
 import { getFacilityById } from "@/lib/facilities";
 import { lookupPincode, isValidPincode } from "@/lib/pincode";
 import { notifyUser } from "@/lib/user-notifications";
+import { onRequestEnded } from "@/lib/chat-cleanup";
 import { assertRequestCreationAllowed } from "@/lib/rate-limit";
 
 async function logAudit(
@@ -348,10 +349,7 @@ export async function closeBloodRequest(requestId: string, reason: string) {
     })
     .eq("id", requestId);
 
-  await supabase
-    .from("chat_threads")
-    .update({ status: "closed" })
-    .eq("request_id", requestId);
+  await onRequestEnded(requestId);
 
   const { data: confirmed } = await supabase
     .from("donor_invitations")
@@ -611,6 +609,7 @@ export async function acceptInvitation(invitationId: string) {
 
   revalidatePath("/donor/invites");
   revalidatePath("/home");
+  revalidatePath("/chat");
   return result;
 }
 
