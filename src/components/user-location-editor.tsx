@@ -120,18 +120,37 @@ export function UserLocationEditor({
             GPS is off. Save a PIN code below — it stays valid for {PIN_LOCATION_TTL_DAYS} days, then
             you need to save it again.
           </p>
-          <div className="flex gap-2">
+          <div className="space-y-3 rounded-[var(--radius-lg)] border border-[var(--separator)] bg-[var(--surface)] p-4 shadow-[var(--shadow-sm)]">
+            <div className="flex items-center gap-2">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-[var(--accent-soft)] text-[var(--accent)]">
+                <MapPin className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-[15px] font-semibold text-[var(--label)]">PIN code location</p>
+                <p className="text-[12px] text-[var(--label-secondary)]">
+                  6-digit Indian postal PIN
+                </p>
+              </div>
+            </div>
             <Input
               inputMode="numeric"
               maxLength={6}
-              placeholder="6-digit PIN code"
+              placeholder="e.g. 682001"
               value={pinInput}
               onChange={(e) => setPinInput(e.target.value.replace(/\D/g, "").slice(0, 6))}
               aria-label="PIN code"
-              className="flex-1"
+              className="border border-[var(--separator)] bg-[var(--surface-secondary)] text-center text-[17px] font-medium tracking-[0.2em] tabular-nums"
             />
-            <Button type="button" variant="secondary" onClick={savePincode} disabled={pinLoading}>
-              {pinLoading ? "…" : "Save PIN"}
+            <Button
+              type="button"
+              variant="primary"
+              size="lg"
+              className="w-full"
+              onClick={savePincode}
+              disabled={pinLoading || !isValidPincode(pinInput)}
+            >
+              <MapPin className="mr-2 h-4 w-4" />
+              {pinLoading ? "Saving…" : "Save PIN"}
             </Button>
           </div>
         </>
