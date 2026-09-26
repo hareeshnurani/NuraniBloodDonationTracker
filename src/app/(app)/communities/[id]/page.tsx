@@ -1,16 +1,17 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { requireActiveProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { PageHeader, SectionHeader, EmptyState } from "@/components/ui/page-header";
+import { EmptyState } from "@/components/ui/page-header";
 import { GroupedSection, GroupedRow, GroupedRowIcon } from "@/components/ui/grouped-list";
 import { Badge } from "@/components/ui/card";
-import { Users, Droplets, Globe, Lock } from "lucide-react";
-import { CommunityAdminPanel } from "@/components/communities/community-admin-panel";
-import { PinButton } from "@/components/communities/pin-button";
-import { LeaveCommunityButton } from "@/components/communities/leave-community-button";
-import { ReportCommunityButton } from "@/components/communities/report-community-button";
+import { CommunityDetailHeader } from "@/components/communities/community-detail-header";
+import { CommunityAdminCollapsible } from "@/components/communities/community-admin-collapsible";
+import {
+  CommunityBottomActions,
+  CommunityMembersEntry,
+} from "@/components/communities/community-bottom-actions";
 import { PRIORITY_LABELS } from "@/lib/constants";
+import { Droplets } from "lucide-react";
 import { format } from "date-fns";
 
 export default async function CommunityDetailPage({
@@ -44,17 +45,11 @@ export default async function CommunityDetailPage({
     notFound();
   }
 
-  const [
-    { data: members, error: membersError },
-    { data: requestLinks, error: requestsError },
-  ] = await Promise.all([
-    isMember
-      ? supabase
-          .from("community_members")
-          .select("user_id, is_admin, joined_at, profiles(name, email)")
-          .eq("community_id", id)
-          .order("joined_at", { ascending: true })
-      : Promise.resolve({ data: null, error: null }),
+  const [{ count: memberCount }, { data: requestLinks, error: requestsError }] = await Promise.all([
+    supabase
+      .from("community_members")
+      .select("*", { count: "exact", head: true })
+      .eq("community_id", id),
     supabase
       .from("request_communities")
       .select(
@@ -62,119 +57,98 @@ export default async function CommunityDetailPage({
       )
       .eq("community_id", id)
       .order("created_at", { ascending: false })
-      .limit(10),
+      .limit(50),
   ]);
 
-  if (membersError) {
-    console.error("community members load failed", membersError.message);
-  }
   if (requestsError) {
     console.error("community requests load failed", requestsError.message);
   }
 
   const activeRequests =
     requestLinks
-      ?.map((rl) => rl.blood_requests as unknown as { id: string; status: string; patient_name: string; primary_blood_group: string; priority: string; units_filled: number; units_needed: number; deadline: string } | null)
-      .filter(
-        (r) => r && ["open", "partially_filled"].includes(r.status)
-      ) ?? [];
+      ?.map(
+        (rl) =>
+          rl.blood_requests as unknown as {
+            id: string;
+            status: string;
+            patient_name: string;
+            primary_blood_group: string;
+            priority: string;
+            units_filled: number;
+            units_needed: number;
+            deadline: string;
+          } | null
+      )
+      .filter((r) => r && ["open", "partially_filled"].includes(r.status)) ?? [];
 
-  const { data: pin } = await supabase
-    .from("user_community_pins")
-    .select("community_id")
-    .eq("user_id", profile.id)
-    .eq("community_id", id)
-    .maybeSingle();
+  const { data: pin } = isMember
+    ? await supabase
+        .from("user_community_pins")
+        .select("community_id")
+        .eq("user_id", profile.id)
+        .eq("community_id", id)
+        .maybeSingle()
+    : { data: null };
+
+  const visibilityLabel = community.visibility === "public" ? "Public group" : "Private group";
 
   return (
-    <div className="space-y-8">
-      <Link href="/communities" className="text-sm text-[var(--accent)] hover:underline">
-        ← Communities
-      </Link>
-
-      <PageHeader
-        title={community.name}
-        subtitle={community.description ?? undefined}
-        action={
-          isMember ? (
-            <div className="flex items-center gap-2">
-              <PinButton communityId={id} isPinned={!!pin} />
-              <ReportCommunityButton communityId={id} />
-              <LeaveCommunityButton communityId={id} />
-            </div>
-          ) : undefined
-        }
+    <div className="space-y-5 pb-8">
+      <CommunityDetailHeader
+        communityId={id}
+        name={community.name}
+        description={community.description}
+        visibilityLabel={visibilityLabel}
+        memberCount={memberCount ?? 0}
+        isMember={isMember}
+        isPinned={!!pin}
       />
 
-      <div className="flex flex-wrap gap-2">
-        <Badge>
-          {community.visibility === "public" ? (
-            <span className="flex items-center gap-1"><Globe className="h-3 w-3" /> Public</span>
-          ) : (
-            <span className="flex items-center gap-1"><Lock className="h-3 w-3" /> Private</span>
-          )}
-        </Badge>
-        <Badge>{members?.length ?? 0} members</Badge>
-      </div>
-
-      {isAdmin && <CommunityAdminPanel communityId={id} visibility={community.visibility} />}
-
-      <section>
-        <SectionHeader title="Active Requests" />
+      <div>
+        <p className="mb-2 px-1 text-[12px] font-semibold uppercase tracking-wide text-[var(--label-tertiary)]">
+          Active requests
+        </p>
         {activeRequests.length > 0 ? (
           <GroupedSection>
             {activeRequests.map((r) => (
-                <GroupedRow key={r!.id} href={`/requests/${r!.id}`} showChevron>
-                  <GroupedRowIcon color="red">
-                    <Droplets className="h-4 w-4" />
-                  </GroupedRowIcon>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[15px] font-medium text-[var(--label)]">{r!.patient_name}</span>
-                      <Badge variant={r!.priority === "emergency" ? "emergency" : "default"}>
-                        {PRIORITY_LABELS[r!.priority]}
-                      </Badge>
-                    </div>
-                    <p className="text-[13px] text-[var(--label-secondary)] mt-0.5">
-                      {r!.primary_blood_group} · {r!.units_filled}/{r!.units_needed} units
-                    </p>
-                    <p className="text-[12px] text-[var(--label-tertiary)] mt-0.5">
-                      Deadline: {format(new Date(r!.deadline), "MMM d, h:mm a")}
-                    </p>
+              <GroupedRow key={r!.id} href={`/requests/${r!.id}`} showChevron>
+                <GroupedRowIcon color="red">
+                  <Droplets className="h-4 w-4" />
+                </GroupedRowIcon>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[15px] font-medium text-[var(--label)]">{r!.patient_name}</span>
+                    <Badge variant={r!.priority === "emergency" ? "emergency" : "default"}>
+                      {PRIORITY_LABELS[r!.priority]}
+                    </Badge>
                   </div>
-                </GroupedRow>
+                  <p className="mt-0.5 text-[13px] text-[var(--label-secondary)]">
+                    {r!.primary_blood_group} · {r!.units_filled}/{r!.units_needed} units
+                  </p>
+                  <p className="mt-0.5 text-[12px] text-[var(--label-tertiary)]">
+                    Deadline {format(new Date(r!.deadline), "MMM d, h:mm a")}
+                  </p>
+                </div>
+              </GroupedRow>
             ))}
           </GroupedSection>
         ) : (
           <EmptyState
             icon={<Droplets className="h-6 w-6" />}
             title="No active requests"
-            description="Requests shared with this community will appear here."
+            description="When someone posts a request to this group, it will show here first."
           />
         )}
-      </section>
+      </div>
 
       {isMember && (
-        <section>
-          <SectionHeader title="Members" />
-          <GroupedSection>
-            {members?.map((m) => {
-              const p = m.profiles as unknown as { name: string; email: string };
-              return (
-                <GroupedRow key={m.user_id}>
-                  <GroupedRowIcon color="blue">
-                    <Users className="h-4 w-4" />
-                  </GroupedRowIcon>
-                  <div className="flex-1">
-                    <span className="text-[15px] font-medium text-[var(--label)]">{p.name}</span>
-                    {m.is_admin && <Badge className="ml-2">Admin</Badge>}
-                    <p className="text-[13px] text-[var(--label-secondary)]">{p.email}</p>
-                  </div>
-                </GroupedRow>
-              );
-            })}
-          </GroupedSection>
-        </section>
+        <>
+          <CommunityMembersEntry communityId={id} memberCount={memberCount ?? 0} />
+          {isAdmin && (
+            <CommunityAdminCollapsible communityId={id} visibility={community.visibility} />
+          )}
+          <CommunityBottomActions communityId={id} />
+        </>
       )}
     </div>
   );
