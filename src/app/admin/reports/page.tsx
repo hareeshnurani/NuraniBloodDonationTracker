@@ -1,6 +1,8 @@
 import { createServiceClient } from "@/lib/supabase/admin";
-import { Card } from "@/components/ui/card";
 import { format } from "date-fns";
+import { PageHeader, EmptyState } from "@/components/ui/page-header";
+import { GroupedSection, GroupedRow, GroupedRowIcon } from "@/components/ui/grouped-list";
+import { Shield } from "lucide-react";
 
 export default async function AdminReportsPage() {
   const supabase = createServiceClient();
@@ -13,36 +15,47 @@ export default async function AdminReportsPage() {
     .limit(50);
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Moderation queue</h1>
-        <p className="mt-1 text-sm text-gray-600">User-submitted reports (chat, communities, requests).</p>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="Moderation"
+        subtitle="User-submitted reports on chat, communities, and requests."
+      />
 
       {error && (
-        <p className="text-sm text-amber-700">
+        <p className="text-sm text-[var(--warning)]">
           Could not load reports. Apply Supabase migration 012 if this table is missing.
         </p>
       )}
 
       {!reports?.length ? (
-        <p className="text-sm text-gray-500">No open reports.</p>
+        <EmptyState
+          icon={<Shield className="h-6 w-6" />}
+          title="No open reports"
+          description="When someone reports content, it will appear here for review."
+        />
       ) : (
-        <div className="space-y-3">
+        <GroupedSection>
           {reports.map((r) => (
-            <Card key={r.id}>
-              <p className="font-medium capitalize">
-                {r.entity_type.replace("_", " ")} · {r.reason}
-              </p>
-              <p className="text-sm text-gray-600">
-                Reported by {(r.profiles as { name: string } | null)?.name ?? "Unknown"} ·{" "}
-                {format(new Date(r.created_at), "MMM d, h:mm a")}
-              </p>
-              {r.details && <p className="mt-2 text-sm text-gray-700">{r.details}</p>}
-              <p className="mt-2 text-xs text-gray-400">Entity ID: {r.entity_id}</p>
-            </Card>
+            <GroupedRow key={r.id}>
+              <GroupedRowIcon color="orange">
+                <Shield className="h-4 w-4" />
+              </GroupedRowIcon>
+              <div className="min-w-0 flex-1">
+                <p className="text-[15px] font-medium capitalize text-[var(--label)]">
+                  {r.entity_type.replace("_", " ")} · {r.reason}
+                </p>
+                <p className="mt-0.5 text-[13px] text-[var(--label-secondary)]">
+                  Reported by {(r.profiles as { name: string } | null)?.name ?? "Unknown"} ·{" "}
+                  {format(new Date(r.created_at), "MMM d, h:mm a")}
+                </p>
+                {r.details && (
+                  <p className="mt-2 text-[13px] text-[var(--label-secondary)]">{r.details}</p>
+                )}
+                <p className="mt-2 text-[12px] text-[var(--label-tertiary)]">Entity ID: {r.entity_id}</p>
+              </div>
+            </GroupedRow>
           ))}
-        </div>
+        </GroupedSection>
       )}
     </div>
   );

@@ -8,6 +8,8 @@ Professional blood donation request management system built with Next.js and Sup
 >
 > **Launch, notifications & funding?** Read **[docs/LAUNCH_AND_SUSTAINABILITY.md](docs/LAUNCH_AND_SUSTAINABILITY.md)**.
 >
+> **CI & monitoring (P0-7)?** See **[docs/P0-7_TESTS_AND_MONITORING.md](docs/P0-7_TESTS_AND_MONITORING.md)**.
+>
 > **PDF download** (GitHub preview often fails — use one of these):
 > - [Release download](https://github.com/sridushiva-dev/NuraniBloodDonationTracker/releases/tag/v1.0-handoff) ← **recommended**
 > - [Direct PDF link](https://raw.githubusercontent.com/sridushiva-dev/NuraniBloodDonationTracker/main/docs/PROJECT_HANDOFF.pdf) (right-click → Save as)
