@@ -186,9 +186,7 @@ export function RequestShareButton({
       setCardFile(
         new File([blob], `bloodlink-${request.id.slice(0, 8)}.png`, { type: "image/png" })
       );
-      setCardReady(true);
     } catch {
-      setCardReady(false);
       setCardFile(null);
     }
   }, [request.id]);
@@ -211,7 +209,6 @@ export function RequestShareButton({
         const blob = await loadShareCardBlob(request.id);
         file = new File([blob], `bloodlink-${request.id.slice(0, 8)}.png`, { type: "image/png" });
         setCardFile(file);
-        setCardReady(true);
       }
 
       if (canUseWebShare() && file) {
