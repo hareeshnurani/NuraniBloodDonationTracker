@@ -17,7 +17,7 @@
 
 1. **Automated:** `npm test` in CI (Vitest smoke for location rules); extend with Playwright against staging when ready.
 2. **Production errors:** add [Sentry](https://sentry.io) or Vercel Log Drains; alert on `/home` and `/api/cron/expire-requests` 5xx.
-3. **Cron:** confirm Vercel Cron runs every 15 minutes; check logs after a request passes deadline.
+3. **Cron:** confirm Vercel Cron runs **daily** on Hobby ([P0-4_VERCEL_HOBBY.md](./P0-4_VERCEL_HOBBY.md)); check logs after deadline.
 
 ## SMS / phone (P2-1, P0-2 phase 2)
 
