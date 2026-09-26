@@ -91,7 +91,7 @@ Check boxes as work completes: `- [ ]` → `- [x]`.
 |--|--|
 | **Gap** | `expired` status exists but no job closes requests when `deadline` passes. |
 | **Overcome** | Scheduled job (Supabase pg_cron or Vercel cron + secured API): set status, notify requester, stop matching. |
-| **Status** | **Done** — `/api/cron/expire-requests` + Vercel cron; set `CRON_SECRET` |
+| **Status** | **Done** — `/api/cron/expire-requests` + Vercel cron; set `CRON_SECRET`. On **Vercel Hobby**, cron is **once/day** only — see [P0-4_VERCEL_HOBBY.md](./P0-4_VERCEL_HOBBY.md) |
 | **Owner** | |
 | **Verification** | Past-deadline request moves to `expired` without manual admin action. |
 | **Notes** | Wire to `closure_type`, deadline extension UX. |
