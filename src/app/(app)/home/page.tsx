@@ -13,10 +13,14 @@ import { DonorHomeStatusControls } from "@/components/donor/donor-home-status-co
 import { UseMyLocationAutoRefresh } from "@/components/donor/use-my-location-auto-refresh";
 import { PendingConfirmations } from "@/components/donor/pending-confirmations";
 import { PinReorderList } from "@/components/communities/pin-reorder-list";
-import { REQUEST_STATUS_LABELS, PRIORITY_LABELS } from "@/lib/constants";
+import { DonorWallCarousel } from "@/components/donor/donor-wall-carousel";
+import { getDonorDonateWall } from "@/lib/donor-donate-feed";
+import { REQUEST_STATUS_LABELS, PRIORITY_LABELS, MATCH_RADIUS_KM } from "@/lib/constants";
 import { getEligibleDate, isDonorEligible } from "@/lib/utils";
-import { Droplets, Plus, AlertCircle, ChevronRight, Users, MapPin } from "lucide-react";
+import { Droplets, Plus, AlertCircle, ChevronRight, Users, MapPin, Heart } from "lucide-react";
 import { format } from "date-fns";
+
+const HOME_NEARBY_PREVIEW = 8;
 
 export default async function HomePage() {
   const { profile } = await requireActiveProfile();
@@ -63,8 +67,9 @@ export default async function HomePage() {
 
   const { data: memberships } = await supabase
     .from("community_members")
-    .select("community_id, communities(id, name)")
-    .eq("user_id", profile.id);
+    .select("community_id, joined_at, communities(id, name)")
+    .eq("user_id", profile.id)
+    .order("joined_at", { ascending: false });
 
   const { data: pins } = await supabase
     .from("user_community_pins")
@@ -73,7 +78,8 @@ export default async function HomePage() {
     .order("sort_order", { ascending: true });
 
   const communityIds = memberships?.map((m) => m.community_id) ?? [];
-  let communityFeed: { id: string; name: string; activeCount: number; sort_order: number; pinned: boolean }[] = [];
+  let communityFeed: { id: string; name: string; activeCount: number; sort_order: number; pinned: boolean }[] =
+    [];
 
   if (communityIds.length > 0) {
     const { data: requestLinks } = await supabase
@@ -106,32 +112,44 @@ export default async function HomePage() {
       if (a.pinned && !b.pinned) return -1;
       if (!a.pinned && b.pinned) return 1;
       if (a.pinned && b.pinned) return a.sort_order - b.sort_order;
-      if (b.activeCount !== a.activeCount) return b.activeCount - a.activeCount;
       return a.name.localeCompare(b.name);
     });
   }
 
   const pinnedCommunities = communityFeed.filter((c) => c.pinned);
-  const unpinnedCommunities = communityFeed.filter((c) => !c.pinned);
 
-  const eligible = donorProfile
-    ? isDonorEligible(donorProfile.last_donation_date)
-    : false;
+  const homeCommunityFallback =
+    pinnedCommunities.length === 0 && memberships?.[0]
+      ? (() => {
+          const m = memberships[0];
+          const c = m.communities as unknown as { id: string; name: string };
+          return (
+            communityFeed.find((x) => x.id === c.id) ?? {
+              id: c.id,
+              name: c.name,
+              activeCount: 0,
+              sort_order: 999,
+              pinned: false,
+            }
+          );
+        })()
+      : null;
+
+  const eligible = donorProfile ? isDonorEligible(donorProfile.last_donation_date) : false;
 
   const locationState = getEffectiveLocationState(profile);
   const hasLocation = locationState.available;
   const gpsNeedsRefresh =
     (profile.use_my_location ?? false) && !isGpsTimestampFresh(profile.gps_updated_at);
 
-  const pendingInviteCount = donorProfile
-    ? (
-        await supabase
-          .from("donor_invitations")
-          .select("*", { count: "exact", head: true })
-          .eq("donor_id", profile.id)
-          .eq("response", "pending")
-      ).count ?? 0
-    : 0;
+  let nearbyWallPreview: Awaited<ReturnType<typeof getDonorDonateWall>>["nearby"] = [];
+  if (
+    donorProfile?.willing_to_donate &&
+    eligible
+  ) {
+    const wall = await getDonorDonateWall(supabase, profile, donorProfile);
+    nearbyWallPreview = wall.nearby.slice(0, HOME_NEARBY_PREVIEW);
+  }
 
   const firstName = profile.name.split(" ")[0];
   const donatedUnits = livesSaved ?? 0;
@@ -142,6 +160,9 @@ export default async function HomePage() {
       : donorProfile
         ? "Every donation can save a life. Turn on your availability and be someone's hero today."
         : "Your blood donation dashboard";
+
+  const showCommunitiesSection =
+    pinnedCommunities.length > 0 || homeCommunityFallback != null;
 
   return (
     <div className="space-y-8">
@@ -219,39 +240,85 @@ export default async function HomePage() {
         </GroupedSection>
       )}
 
-      {communityFeed.length > 0 && (
+      {showCommunitiesSection && (
         <section>
           <SectionHeader
             title="My Communities"
             action={
-              <Link href="/communities" className="text-[15px] font-medium text-[var(--accent)] flex items-center gap-0.5">
+              <Link
+                href="/communities"
+                className="flex items-center gap-0.5 text-[15px] font-medium text-[var(--accent)]"
+              >
                 See all <ChevronRight className="h-4 w-4" />
               </Link>
             }
           />
-          {pinnedCommunities.length > 0 && (
+          {pinnedCommunities.length > 0 ? (
             <GroupedSection>
               <PinReorderList communities={pinnedCommunities} />
             </GroupedSection>
-          )}
-          {unpinnedCommunities.length > 0 && (
-            <GroupedSection className={pinnedCommunities.length > 0 ? "mt-2" : ""}>
-              {unpinnedCommunities.slice(0, 5).map((c) => (
-                <GroupedRow key={c.id} href={`/communities/${c.id}`} showChevron>
-                  <GroupedRowIcon color="blue">
-                    <Users className="h-4 w-4" />
-                  </GroupedRowIcon>
-                  <div className="flex-1 min-w-0">
-                    <span className="text-[15px] font-medium text-[var(--label)]">{c.name}</span>
-                    {c.activeCount > 0 && (
-                      <p className="text-[13px] text-[var(--accent)] mt-0.5">
-                        {c.activeCount} active request{c.activeCount !== 1 ? "s" : ""}
-                      </p>
-                    )}
-                  </div>
-                </GroupedRow>
-              ))}
+          ) : homeCommunityFallback ? (
+            <GroupedSection>
+              <GroupedRow href={`/communities/${homeCommunityFallback.id}`} showChevron>
+                <GroupedRowIcon color="blue">
+                  <Users className="h-4 w-4" />
+                </GroupedRowIcon>
+                <div className="min-w-0 flex-1">
+                  <span className="text-[15px] font-medium text-[var(--label)]">
+                    {homeCommunityFallback.name}
+                  </span>
+                  <p className="mt-0.5 text-[13px] text-[var(--label-secondary)]">
+                    Recently joined · Pin communities in Groups to show more here
+                  </p>
+                  {homeCommunityFallback.activeCount > 0 && (
+                    <p className="mt-0.5 text-[13px] text-[var(--accent)]">
+                      {homeCommunityFallback.activeCount} active request
+                      {homeCommunityFallback.activeCount !== 1 ? "s" : ""}
+                    </p>
+                  )}
+                </div>
+              </GroupedRow>
             </GroupedSection>
+          ) : null}
+        </section>
+      )}
+
+      {donorProfile?.willing_to_donate && eligible && (
+        <section>
+          <SectionHeader
+            title="Donation requests nearby"
+            action={
+              nearbyWallPreview.length > 0 ? (
+                <Link
+                  href="/donate/all?section=nearby"
+                  className="flex items-center gap-0.5 text-[15px] font-medium text-[var(--accent)]"
+                >
+                  See all <ChevronRight className="h-4 w-4" />
+                </Link>
+              ) : (
+                <Link
+                  href="/donate"
+                  className="flex items-center gap-0.5 text-[15px] font-medium text-[var(--accent)]"
+                >
+                  Donate tab <ChevronRight className="h-4 w-4" />
+                </Link>
+              )
+            }
+          />
+          <p className="mb-4 px-1 text-[13px] text-[var(--label-secondary)]">
+            Active requests matching your group within {MATCH_RADIUS_KM} km — swipe to browse.
+          </p>
+          {nearbyWallPreview.length > 0 ? (
+            <DonorWallCarousel
+              rows={nearbyWallPreview}
+              donorAvailable={donorProfile.is_available}
+            />
+          ) : (
+            <EmptyState
+              icon={<Heart className="h-6 w-6" />}
+              title="No nearby active requests"
+              description="When an open request matches your blood group nearby, it will appear here."
+            />
           )}
         </section>
       )}
@@ -265,18 +332,20 @@ export default async function HomePage() {
                 <GroupedRowIcon color="red">
                   <Droplets className="h-4 w-4" />
                 </GroupedRowIcon>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[15px] font-medium text-[var(--label)]">{req.patient_name}</span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[15px] font-medium text-[var(--label)]">
+                      {req.patient_name}
+                    </span>
                     <Badge variant={req.priority === "emergency" ? "emergency" : "default"}>
                       {PRIORITY_LABELS[req.priority]}
                     </Badge>
                   </div>
-                  <p className="text-[13px] text-[var(--label-secondary)] mt-0.5">
+                  <p className="mt-0.5 text-[13px] text-[var(--label-secondary)]">
                     {req.primary_blood_group} · {req.units_filled}/{req.units_needed} units ·{" "}
                     {REQUEST_STATUS_LABELS[req.status]}
                   </p>
-                  <p className="text-[12px] text-[var(--label-tertiary)] mt-0.5">
+                  <p className="mt-0.5 text-[12px] text-[var(--label-tertiary)]">
                     Deadline: {format(new Date(req.deadline), "MMM d, h:mm a")}
                   </p>
                 </div>
@@ -299,26 +368,6 @@ export default async function HomePage() {
           />
         )}
       </section>
-
-      {donorProfile && pendingInviteCount > 0 && (
-        <section>
-          <GroupedSection>
-            <GroupedRow href="/donate" showChevron>
-              <GroupedRowIcon color="red">
-                <Droplets className="h-4 w-4" />
-              </GroupedRowIcon>
-              <div className="min-w-0 flex-1">
-                <p className="text-[15px] font-medium text-[var(--label)]">
-                  {pendingInviteCount} pending donation invite{pendingInviteCount !== 1 ? "s" : ""}
-                </p>
-                <p className="mt-0.5 text-[13px] text-[var(--label-secondary)]">
-                  Open Donate to respond — nearby and wider requests.
-                </p>
-              </div>
-            </GroupedRow>
-          </GroupedSection>
-        </section>
-      )}
     </div>
   );
 }
