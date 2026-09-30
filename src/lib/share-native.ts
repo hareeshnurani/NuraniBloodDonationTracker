@@ -5,9 +5,7 @@ export type SharePosterPayload = {
   url: string;
   message: string;
   title: string;
-  /** Full message for WhatsApp compose / link share (appeal then link) */
   captionWithLink: string;
-  /** URL-first caption for rare targets that accept file + text */
   imageDescription: string;
 };
 
@@ -15,7 +13,8 @@ export function buildSharePosterPayload(
   request: ShareableRequest,
   origin: string
 ): SharePosterPayload {
-  const url = shareRequestUrl(origin, request.id);
+  const base = origin.replace(/\/$/, "");
+  const url = shareRequestUrl(base, request.id);
   const message = shareRequestText(request);
   return {
     url,
@@ -30,11 +29,6 @@ export function canUseWebShare(): boolean {
   return typeof navigator !== "undefined" && typeof navigator.share === "function";
 }
 
-export function isMobileShareDevice() {
-  if (typeof navigator === "undefined") return false;
-  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-}
-
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -43,7 +37,7 @@ function messageWithoutTrailingUrl(captionWithLink: string, url: string) {
   return captionWithLink.replace(new RegExp(`\\n*${escapeRegExp(url)}\\s*$`), "").trim();
 }
 
-/** Ordered for targets that use `text` as the image caption / description. */
+/** Poster file + text as image caption (pick WhatsApp from the sheet). */
 export function buildImageFileShareAttempts(
   file: File,
   payload: Pick<SharePosterPayload, "url" | "message" | "title" | "captionWithLink" | "imageDescription">
@@ -53,11 +47,13 @@ export function buildImageFileShareAttempts(
 
   const attempts: ShareData[] = [
     { files: [file], text: captionWithLink, title },
-    { files: [file], text: imageDescription },
+    { files: [file], text: imageDescription, title },
     { files: [file], text: `${url}\n\n${appealOnly}`, title },
-    { files: [file], text: url },
+    { files: [file], text: url, title: captionWithLink },
     { files: [file], title: captionWithLink, text: url },
-    { files: [file], text: captionWithLink },
+    { files: [file], text: captionWithLink, url, title },
+    { files: [file], text: url },
+    { files: [file], title },
   ];
 
   const seen = new Set<string>();
@@ -74,7 +70,7 @@ export function buildImageFileShareAttempts(
   });
 }
 
-/** Share payloads where the link is part of the message body (not clipboard). */
+/** Link-only share (poster as OG preview, not as attachment). Last resort. */
 export function buildLinkMessageShareAttempts(
   payload: Pick<SharePosterPayload, "url" | "message" | "title" | "captionWithLink">
 ): ShareData[] {
@@ -83,7 +79,6 @@ export function buildLinkMessageShareAttempts(
     { url, text: captionWithLink, title },
     { text: captionWithLink, url, title },
     { url, text: message, title },
-    { text: captionWithLink, title },
   ];
 }
 
@@ -97,15 +92,14 @@ export function shareSuccessHint(result: SharePosterResult | null): string {
   if (!result) return "Poster not ready — try again";
   if (!result.shared) return "Choose an option below";
   if (result.mode === "whatsapp-compose") {
-    return "WhatsApp opened with your message and link — tap attach and choose the saved poster";
+    return "Poster saved — attach it in WhatsApp (message text already includes the link)";
   }
   if (result.mode === "native-url") {
-    return "Shared with link in the message (poster shows in the link preview)";
+    return "Shared link with poster preview — for the poster file, pick WhatsApp from the share sheet";
   }
-  return "Poster shared with link in the message";
+  return "Poster shared — link should appear as the image caption; if not, use WhatsApp (poster + link) in the menu";
 }
 
-/** Opens WhatsApp with `text` pre-filled in the compose field (not clipboard). */
 export function openWhatsAppWithMessage(text: string) {
   const href = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
   const opened = window.open(href, "_blank", "noopener,noreferrer");
@@ -124,15 +118,6 @@ async function tryNativeShare(data: ShareData): Promise<boolean> {
   }
 }
 
-async function tryShareLinkInMessageBody(
-  payload: Pick<SharePosterPayload, "url" | "message" | "title" | "captionWithLink">
-): Promise<boolean> {
-  for (const data of buildLinkMessageShareAttempts(payload)) {
-    if (await tryNativeShare(data)) return true;
-  }
-  return false;
-}
-
 async function tryShareImageFileWithDescription(
   file: File,
   payload: Pick<SharePosterPayload, "url" | "message" | "title" | "captionWithLink" | "imageDescription">
@@ -143,7 +128,15 @@ async function tryShareImageFileWithDescription(
   return false;
 }
 
-/** WhatsApp compose: message text (with link) in chat + poster saved to attach. No clipboard. */
+async function tryShareLinkInMessageBody(
+  payload: Pick<SharePosterPayload, "url" | "message" | "title" | "captionWithLink">
+): Promise<boolean> {
+  for (const data of buildLinkMessageShareAttempts(payload)) {
+    if (await tryNativeShare(data)) return true;
+  }
+  return false;
+}
+
 export function shareViaWhatsAppCompose(
   file: File,
   captionWithLink: string
@@ -154,8 +147,7 @@ export function shareViaWhatsAppCompose(
 }
 
 /**
- * Share with link in the message payload (Web Share text/url), not via clipboard.
- * On mobile, avoids file-only WhatsApp shares that drop the caption.
+ * Share poster PNG first (Web Share files + caption text), then link-only fallback.
  */
 export async function sharePosterWithLink(opts: {
   file: File;
@@ -173,22 +165,20 @@ export async function sharePosterWithLink(opts: {
     imageDescription: opts.imageDescription,
   };
 
-  if (await tryShareLinkInMessageBody(payload)) {
-    return { shared: true, mode: "native-url" };
+  if (await tryShareImageFileWithDescription(opts.file, payload)) {
+    return { shared: true, mode: "native-file" };
   }
 
-  if (!isMobileShareDevice()) {
-    if (await tryShareImageFileWithDescription(opts.file, payload)) {
-      return { shared: true, mode: "native-file" };
-    }
+  if (await tryShareLinkInMessageBody(payload)) {
+    return { shared: true, mode: "native-url" };
   }
 
   return { shared: false };
 }
 
 /**
- * WhatsApp: always pre-fill the chat message (appeal + link) via WhatsApp API,
- * save poster for attach — do not use Web Share file-only (drops text) or clipboard.
+ * WhatsApp: share poster file + caption via system sheet when possible;
+ * otherwise save poster and open WhatsApp with message text (link included).
  */
 export async function sharePosterWithLinkOnWhatsApp(opts: {
   file: File;
@@ -198,14 +188,21 @@ export async function sharePosterWithLinkOnWhatsApp(opts: {
   message: string;
   url: string;
 }): Promise<SharePosterResult> {
-  void opts.title;
-  void opts.imageDescription;
-  void opts.message;
-  void opts.url;
+  const payload = {
+    url: opts.url,
+    message: opts.message,
+    title: opts.title,
+    captionWithLink: opts.captionWithLink,
+    imageDescription: opts.imageDescription,
+  };
+
+  if (await tryShareImageFileWithDescription(opts.file, payload)) {
+    return { shared: true, mode: "native-file" };
+  }
+
   return shareViaWhatsAppCompose(opts.file, opts.captionWithLink);
 }
 
-/** Manual fallback only — not used for automatic share. */
 export async function copyShareText(text: string): Promise<boolean> {
   try {
     await navigator.clipboard.writeText(text);
@@ -224,7 +221,6 @@ export function downloadShareFile(file: File) {
   URL.revokeObjectURL(href);
 }
 
-/** Share poster PNG only (no link) — for apps where link share is separate. */
 export async function sharePosterFileOnly(file: File, title: string): Promise<boolean> {
   return tryNativeShare({ files: [file], title });
 }
