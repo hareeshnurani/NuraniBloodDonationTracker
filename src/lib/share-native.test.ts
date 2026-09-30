@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { ShareableRequest } from "@/lib/request-share";
 import {
   buildImageFileShareAttempts,
+  buildLinkMessageShareAttempts,
   buildSharePosterPayload,
 } from "@/lib/share-native";
 
@@ -39,7 +40,14 @@ describe("buildSharePosterPayload", () => {
     const payload = buildSharePosterPayload(mockReq, "https://example.com");
     const file = new File(["x"], "bloodlink.png", { type: "image/png" });
     const attempts = buildImageFileShareAttempts(file, payload);
-    expect(attempts[0].text).toBe(payload.url);
+    expect(attempts[0].text).toBe(payload.captionWithLink);
     expect(attempts.some((a) => a.text === payload.imageDescription)).toBe(true);
+  });
+
+  it("puts appeal and URL in link message share payloads", () => {
+    const payload = buildSharePosterPayload(mockReq, "https://example.com");
+    const attempts = buildLinkMessageShareAttempts(payload);
+    expect(attempts[0].text).toBe(payload.captionWithLink);
+    expect(attempts[0].url).toBe(payload.url);
   });
 });
