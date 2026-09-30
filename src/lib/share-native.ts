@@ -5,9 +5,8 @@ export type SharePosterPayload = {
   url: string;
   message: string;
   title: string;
+  /** WhatsApp caption: appeal text + blank line + tappable URL */
   captionWithLink: string;
-  /** Short caption — URL only (works better with image on some WhatsApp builds) */
-  urlCaption: string;
 };
 
 export function buildSharePosterPayload(
@@ -21,7 +20,6 @@ export function buildSharePosterPayload(
     message,
     title: `Blood needed — ${request.primary_blood_group}`,
     captionWithLink: `${message}\n\n${url}`,
-    urlCaption: url,
   };
 }
 
@@ -29,54 +27,83 @@ export function canUseWebShare(): boolean {
   return typeof navigator !== "undefined" && typeof navigator.share === "function";
 }
 
+function shareDataWithImageAndCaption(file: File, captionWithLink: string, title: string, url: string) {
+  const urlFirst = `${url}\n\n${captionWithLink.split("\n\n").slice(0, -1).join("\n\n") || ""}`.trim();
+  const lines: ShareData[] = [
+    { files: [file], text: captionWithLink, title },
+    { files: [file], text: captionWithLink },
+    { files: [file], text: `${url}\n\n${messageFromCaption(captionWithLink, url)}`, title },
+    { files: [file], text: captionWithLink, url, title },
+  ];
+  if (urlFirst !== captionWithLink) {
+    lines.splice(2, 0, { files: [file], text: urlFirst, title });
+  }
+  return lines;
+}
+
+function messageFromCaption(captionWithLink: string, url: string) {
+  return captionWithLink.replace(new RegExp(`\\n*${url.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*$`), "").trim();
+}
+
 export type SharePosterResult = {
   shared: boolean;
-  copied: boolean;
+  /** Link copied so user can paste if the app drops the caption */
+  linkCopied?: boolean;
 };
 
-/** Copy link, then share poster. Caption tries URL-first for WhatsApp. */
+export function shareSuccessHint(result: SharePosterResult | null): string {
+  if (!result) return "Poster not ready — try again";
+  if (result.shared) {
+    return result.linkCopied
+      ? "Poster shared — link copied (paste in chat if text is missing)"
+      : "Poster and link shared";
+  }
+  return "Choose an option below";
+}
+
+/** Share poster PNG with link in the message caption (not on the image). */
 export async function sharePosterWithLink(opts: {
   file: File;
   title: string;
-  message: string;
   captionWithLink: string;
-  urlCaption: string;
   url: string;
 }): Promise<SharePosterResult> {
-  const copied = await copyShareText(opts.captionWithLink);
+  if (!canUseWebShare()) return { shared: false };
 
-  if (!canUseWebShare()) {
-    return { shared: false, copied };
-  }
-
-  const urlBlock = `${opts.url}\n\n${opts.message}`;
-  const attempts: ShareData[] = [
-    { files: [opts.file], text: opts.urlCaption },
-    { files: [opts.file], text: urlBlock },
-    { files: [opts.file], text: opts.captionWithLink, title: opts.title },
-    { files: [opts.file], text: opts.captionWithLink },
-    { files: [opts.file], text: opts.captionWithLink, url: opts.url, title: opts.title },
-  ];
+  const attempts = shareDataWithImageAndCaption(
+    opts.file,
+    opts.captionWithLink,
+    opts.title,
+    opts.url
+  );
 
   for (const data of attempts) {
     try {
       if (navigator.canShare && !navigator.canShare(data)) continue;
       await navigator.share(data);
-      return { shared: true, copied };
+      return { shared: true };
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") throw err;
     }
   }
 
-  return { shared: false, copied };
+  return { shared: false };
 }
 
-export function openWhatsAppWithText(text: string) {
-  const encoded = encodeURIComponent(text);
-  const ua = navigator.userAgent;
-  const mobile = /Android|iPhone|iPad|iPod/i.test(ua);
-  const href = mobile ? `whatsapp://send?text=${encoded}` : `https://wa.me/?text=${encoded}`;
-  window.open(href, "_blank", "noopener,noreferrer");
+/** Opens the system share sheet — user picks WhatsApp; image + caption when supported. */
+export async function sharePosterWithLinkOnWhatsApp(opts: {
+  file: File;
+  title: string;
+  captionWithLink: string;
+  url: string;
+}): Promise<SharePosterResult> {
+  const result = await sharePosterWithLink(opts);
+  if (result.shared) return result;
+
+  const copied = await copyShareText(opts.captionWithLink);
+  const retried = copied ? await sharePosterWithLink({ ...opts }) : result;
+  if (retried.shared) return { shared: true, linkCopied: copied };
+  return { shared: false, linkCopied: copied };
 }
 
 export async function copyShareText(text: string): Promise<boolean> {
@@ -95,47 +122,4 @@ export function downloadShareFile(file: File) {
   a.download = file.name;
   a.click();
   URL.revokeObjectURL(href);
-}
-
-/** WhatsApp: try image+URL share; else save poster (has QR/link) + open chat with URL. */
-export async function prepareWhatsAppPosterShare(opts: {
-  file: File;
-  captionWithLink: string;
-  urlCaption: string;
-  message: string;
-}): Promise<SharePosterResult> {
-  const copied = await copyShareText(opts.captionWithLink);
-
-  if (canUseWebShare()) {
-    const attempts: ShareData[] = [
-      { files: [opts.file], text: opts.urlCaption },
-      { files: [opts.file], text: `${opts.urlCaption}\n\n${opts.message}` },
-    ];
-    for (const data of attempts) {
-      try {
-        if (navigator.canShare && !navigator.canShare(data)) continue;
-        await navigator.share(data);
-        return { shared: true, copied };
-      } catch (err) {
-        if (err instanceof Error && err.name === "AbortError") throw err;
-      }
-    }
-  }
-
-  downloadShareFile(opts.file);
-  openWhatsAppWithText(opts.urlCaption);
-  return { shared: false, copied };
-}
-
-export function shareSuccessHint(result: SharePosterResult): string {
-  if (result.shared && result.copied) {
-    return "Shared. Link also copied — poster includes QR + URL if caption is missing.";
-  }
-  if (result.shared) {
-    return "Shared. The poster includes the link and QR code on the image.";
-  }
-  if (result.copied) {
-    return "Link copied. Paste as caption; poster has QR + URL too.";
-  }
-  return "Poster includes link and QR. Paste the link from the sheet if needed.";
 }
