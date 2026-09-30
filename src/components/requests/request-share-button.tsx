@@ -61,16 +61,20 @@ async function invokeNativeShare(opts: {
   file: File | null;
 }) {
   const { title, message, url, file } = opts;
+  const captionWithLink = `${message}\n\n${url}`;
 
   if (!canUseWebShare()) return false;
 
   const attempts: ShareData[] = [];
 
   if (file) {
-    attempts.push({ files: [file], title, text: message });
+    // WhatsApp / mobile: image + caption; URL in text stays tappable
+    attempts.push({ files: [file], text: captionWithLink, title });
+    attempts.push({ files: [file], text: message, url, title });
+    attempts.push({ files: [file], title, text: `${message}\n${url}` });
   }
-  attempts.push({ url, title, text: message });
-  attempts.push({ title, text: `${message}\n${url}` });
+  attempts.push({ url, title, text: captionWithLink });
+  attempts.push({ title, text: captionWithLink });
 
   for (const data of attempts) {
     try {
@@ -110,8 +114,8 @@ function ShareFallbackSheet({
 
   async function copyLink() {
     try {
-      await navigator.clipboard.writeText(`${message}\n${url}`);
-      setHint("Copied to clipboard");
+      await navigator.clipboard.writeText(`${message}\n\n${url}`);
+      setHint("Copied poster text and link");
     } catch {
       setHint("Could not copy — select and copy the link manually");
     }
@@ -155,8 +159,8 @@ function ShareFallbackSheet({
           </button>
         </div>
         <p className="mb-4 text-[14px] leading-relaxed text-[var(--label-secondary)]">
-          Share the BloodLink appeal card and link. On your phone, use <strong>Share</strong> to pick
-          WhatsApp, Messages, or another app.
+          Share sends the <strong>poster image</strong> and a <strong>tappable link</strong> in the
+          caption so people can open BloodLink and respond.
         </p>
         <div className="flex flex-col gap-2">
           {canUseWebShare() && (
@@ -221,7 +225,7 @@ export function RequestShareButton({
   async function runShare() {
     const origin = window.location.origin;
     const url = shareRequestUrl(origin, request.id);
-    const fullMessage = `${message}\n${url}`;
+    const captionWithLink = `${message}\n\n${url}`;
 
     setSharing(true);
     setInlineHint("");
@@ -234,8 +238,13 @@ export function RequestShareButton({
         setCardFile(file);
       }
 
-      if (canUseWebShare() && file) {
-        const shared = await invokeNativeShare({ title, message: fullMessage, url, file });
+      if (canUseWebShare()) {
+        const shared = await invokeNativeShare({
+          title,
+          message,
+          url,
+          file,
+        });
         if (shared) {
           setSheetOpen(false);
           return;
@@ -263,12 +272,11 @@ export function RequestShareButton({
   async function handleSheetNativeShare() {
     const origin = window.location.origin;
     const url = shareRequestUrl(origin, request.id);
-    const fullMessage = `${message}\n${url}`;
     setSharing(true);
     try {
       const shared = await invokeNativeShare({
         title,
-        message: fullMessage,
+        message,
         url,
         file: cardFile,
       });
@@ -331,7 +339,7 @@ export function RequestShareButton({
         open={sheetOpen}
         onClose={() => setSheetOpen(false)}
         url={sheetUrl}
-        message={sheetUrl ? `${message}\n${sheetUrl}` : message}
+        message={sheetUrl ? `${message}\n\n${sheetUrl}` : message}
         file={cardFile}
         cardLoading={cardLoading}
         onNativeShare={handleSheetNativeShare}

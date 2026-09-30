@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import sharp from "sharp";
 import type { ShareableRequest } from "@/lib/request-share";
-import { renderShareCardPng } from "@/lib/share-card-render";
+import { renderShareCardPng, SHARE_CARD_WIDTH } from "@/lib/share-card-render";
 import { getShareCardFontPaths } from "@/lib/share-card-fonts";
-import { buildShareCardOgElement } from "@/lib/share-card-og";
+import { buildShareCardOgElementFromRequest } from "@/lib/share-card-og";
 
 const mockReq: ShareableRequest = {
   id: "2a6f8bbc-4ae2-4a30-b537-086f30671f33",
@@ -20,11 +20,11 @@ const mockReq: ShareableRequest = {
   status: "open",
 };
 
-async function countLightHeaderPixels(buf: Buffer) {
+async function countLightPixels(buf: Buffer, x0: number, y0: number, x1: number, y1: number) {
   const { data, info } = await sharp(buf).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   let lightPixels = 0;
-  for (let y = 70; y < 120; y += 2) {
-    for (let x = 100; x < 420; x += 2) {
+  for (let y = y0; y < y1; y += 3) {
+    for (let x = x0; x < x1; x += 3) {
       if (x >= info.width || y >= info.height) continue;
       const i = (y * info.width + x) * info.channels;
       const r = data[i];
@@ -41,17 +41,21 @@ describe("share card PNG", () => {
     expect(getShareCardFontPaths().length).toBe(2);
   });
 
-  it("renders PNG via @vercel/og with fonts", async () => {
+  it("renders landscape poster PNG with readable text", async () => {
     const buf = await renderShareCardPng(mockReq);
     expect(buf.length).toBeGreaterThan(1000);
     expect(buf[0]).toBe(0x89);
-    expect(buf[1]).toBe(0x50);
-    const lightPixels = await countLightHeaderPixels(buf);
-    expect(lightPixels).toBeGreaterThan(20);
+    const meta = await sharp(buf).metadata();
+    expect(meta.width).toBe(SHARE_CARD_WIDTH);
+    expect(meta.height).toBe(800);
+    const bloodTypePixels = await countLightPixels(buf, 120, 180, 320, 380);
+    const headlinePixels = await countLightPixels(buf, 480, 160, 900, 320);
+    expect(bloodTypePixels).toBeGreaterThan(15);
+    expect(headlinePixels).toBeGreaterThan(15);
   });
 
-  it("OG JSX includes request copy", () => {
-    const el = buildShareCardOgElement(mockReq);
+  it("OG JSX includes hero copy", () => {
+    const el = buildShareCardOgElementFromRequest(mockReq, "https://example.com");
     expect(el).toBeTruthy();
   });
 });

@@ -47,7 +47,7 @@ export function shareRequestText(req: ShareableRequest) {
     `${req.patient_name} · ${priority}`,
     `${unitsLeft} unit${unitsLeft !== 1 ? "s" : ""} still needed · by ${deadline}`,
     location ? location : null,
-    "Help on BloodLink:",
+    "Tap the link below to respond on BloodLink:",
   ]
     .filter(Boolean)
     .join("\n");

@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import type { ShareableRequest } from "@/lib/request-share";
-import { buildShareCardOgElement } from "@/lib/share-card-og";
+import { buildShareCardOgElementFromRequest } from "@/lib/share-card-og";
 import { getShareCardFontPaths } from "@/lib/share-card-fonts";
 import { SHARE_CARD_HEIGHT, SHARE_CARD_WIDTH } from "@/lib/share-card-copy";
 
@@ -19,7 +19,8 @@ export async function loadShareCardFontBuffers() {
 export async function renderShareCardPng(req: ShareableRequest): Promise<Buffer> {
   const fonts = await loadShareCardFontBuffers();
   const og = await import("next/dist/compiled/@vercel/og/index.node.js");
-  const element = buildShareCardOgElement(req);
+  const origin = process.env.NEXT_PUBLIC_APP_URL ?? "https://bloodlink.app";
+  const element = buildShareCardOgElementFromRequest(req, origin);
   const response = new og.ImageResponse(element, {
     width: SHARE_CARD_WIDTH,
     height: SHARE_CARD_HEIGHT,
