@@ -1,20 +1,13 @@
 import type { ShareableRequest } from "@/lib/request-share";
-import { getShareCardCopy, sanitizeShareCardText } from "@/lib/share-card-copy";
+import { getShareCardCopy } from "@/lib/share-card-copy";
 
 const FONT = "Inter";
 const RED = "#ff3b30";
 const DARK = "#121214";
 
-type OgProps = {
-  req: ShareableRequest;
-  shareUrl: string;
-  qrDataUrl: string;
-};
-
-/** Satori-safe landscape poster — blood type hero + QR/link baked into PNG. */
-export function buildShareCardOgElement({ req, shareUrl, qrDataUrl }: OgProps) {
+/** Visual-only landscape poster (no URL/QR on the image). */
+export function buildShareCardOgElement(req: ShareableRequest) {
   const copy = getShareCardCopy(req);
-  const urlOnPoster = sanitizeShareCardText(shareUrl, 88);
 
   return (
     <div
@@ -26,7 +19,7 @@ export function buildShareCardOgElement({ req, shareUrl, qrDataUrl }: OgProps) {
         background: `linear-gradient(135deg, ${DARK} 0%, #2a1210 45%, #8b1a12 100%)`,
         color: "white",
         fontFamily: FONT,
-        padding: "36px 44px",
+        padding: "40px 48px",
       }}
     >
       {copy.isEmergency ? (
@@ -36,9 +29,9 @@ export function buildShareCardOgElement({ req, shareUrl, qrDataUrl }: OgProps) {
             alignItems: "center",
             justifyContent: "center",
             background: RED,
-            marginBottom: 20,
-            padding: "8px 0",
-            fontSize: 20,
+            marginBottom: 28,
+            padding: "10px 0",
+            fontSize: 22,
             fontWeight: 700,
             letterSpacing: 4,
           }}
@@ -51,7 +44,7 @@ export function buildShareCardOgElement({ req, shareUrl, qrDataUrl }: OgProps) {
         style={{
           display: "flex",
           flexDirection: "row",
-          height: 460,
+          height: 520,
           alignItems: "center",
           justifyContent: "space-between",
         }}
@@ -61,18 +54,18 @@ export function buildShareCardOgElement({ req, shareUrl, qrDataUrl }: OgProps) {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            width: 300,
-            height: 300,
-            borderRadius: 150,
+            width: 340,
+            height: 340,
+            borderRadius: 170,
             background: "rgba(255,59,48,0.25)",
             border: "6px solid rgba(255,255,255,0.9)",
-            boxShadow: "0 0 72px rgba(255,59,48,0.45)",
+            boxShadow: "0 0 80px rgba(255,59,48,0.45)",
           }}
         >
           <div
             style={{
               display: "flex",
-              fontSize: 108,
+              fontSize: 120,
               fontWeight: 700,
               letterSpacing: -4,
               lineHeight: 1,
@@ -86,18 +79,18 @@ export function buildShareCardOgElement({ req, shareUrl, qrDataUrl }: OgProps) {
           style={{
             display: "flex",
             flexDirection: "column",
-            width: 720,
-            paddingLeft: 32,
+            width: 680,
+            paddingLeft: 40,
           }}
         >
           <div
             style={{
               display: "flex",
-              fontSize: 24,
+              fontSize: 26,
               fontWeight: 700,
               color: RED,
               letterSpacing: 2,
-              marginBottom: 6,
+              marginBottom: 8,
             }}
           >
             {copy.heroHeadline}
@@ -105,27 +98,27 @@ export function buildShareCardOgElement({ req, shareUrl, qrDataUrl }: OgProps) {
           <div
             style={{
               display: "flex",
-              fontSize: 64,
+              fontSize: 72,
               fontWeight: 700,
               lineHeight: 1,
-              marginBottom: 10,
+              marginBottom: 12,
             }}
           >
             {copy.unitsHero}
           </div>
-          <div style={{ display: "flex", fontSize: 32, fontWeight: 700, marginBottom: 12 }}>
+          <div style={{ display: "flex", fontSize: 36, fontWeight: 700, marginBottom: 16 }}>
             {copy.patientName}
           </div>
-          <div style={{ display: "flex", fontSize: 20, opacity: 0.85, marginBottom: 8 }}>
+          <div style={{ display: "flex", fontSize: 22, opacity: 0.85, marginBottom: 8 }}>
             {copy.unitsSub} · {copy.priority}
           </div>
           <div
             style={{
               display: "flex",
-              fontSize: 22,
+              fontSize: 24,
               fontWeight: 600,
               background: "rgba(255,255,255,0.12)",
-              padding: "12px 18px",
+              padding: "14px 20px",
               borderRadius: 12,
             }}
           >
@@ -135,9 +128,9 @@ export function buildShareCardOgElement({ req, shareUrl, qrDataUrl }: OgProps) {
             <div
               style={{
                 display: "flex",
-                fontSize: 18,
+                fontSize: 20,
                 opacity: 0.8,
-                marginTop: 12,
+                marginTop: 14,
                 lineHeight: 1.35,
               }}
             >
@@ -151,42 +144,16 @@ export function buildShareCardOgElement({ req, shareUrl, qrDataUrl }: OgProps) {
         style={{
           display: "flex",
           flexDirection: "row",
-          alignItems: "center",
           justifyContent: "space-between",
-          borderTop: "2px solid rgba(255,255,255,0.25)",
-          paddingTop: 18,
-          marginTop: 4,
+          alignItems: "center",
+          borderTop: "2px solid rgba(255,255,255,0.2)",
+          paddingTop: 22,
+          marginTop: 8,
         }}
       >
-        <div style={{ display: "flex", flexDirection: "column", width: 420 }}>
-          <div style={{ display: "flex", fontSize: 24, fontWeight: 700 }}>BloodLink</div>
-          <div style={{ display: "flex", fontSize: 16, opacity: 0.8, marginTop: 4 }}>
-            Scan QR or type this link to respond
-          </div>
-        </div>
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "row",
-            alignItems: "center",
-          }}
-        >
-          <div style={{ display: "flex", flexDirection: "column", maxWidth: 480, marginRight: 16 }}>
-            <div style={{ display: "flex", fontSize: 15, fontWeight: 600, lineHeight: 1.35 }}>
-              {urlOnPoster}
-            </div>
-          </div>
-          <div
-            style={{
-              display: "flex",
-              background: "white",
-              padding: 6,
-              borderRadius: 8,
-            }}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element -- OG/Satori */}
-            <img src={qrDataUrl} width={92} height={92} alt="" />
-          </div>
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          <div style={{ display: "flex", fontSize: 26, fontWeight: 700 }}>BloodLink</div>
+          <div style={{ display: "flex", fontSize: 18, opacity: 0.75 }}>{copy.posterFooter}</div>
         </div>
       </div>
     </div>

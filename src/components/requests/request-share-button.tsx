@@ -8,8 +8,8 @@ import {
   canUseWebShare,
   copyShareText,
   downloadShareFile,
-  prepareWhatsAppPosterShare,
   sharePosterWithLink,
+  sharePosterWithLinkOnWhatsApp,
   shareSuccessHint,
 } from "@/lib/share-native";
 import { Share2, X, Link2, Download, MessageCircle } from "lucide-react";
@@ -137,8 +137,8 @@ function ShareFallbackSheet({
           </button>
         </div>
         <p className="mb-4 text-[14px] leading-relaxed text-[var(--label-secondary)]">
-          Every poster includes a <strong>QR code</strong> and the <strong>full link</strong> on the
-          image. We copy the link when you share — paste it in WhatsApp if the caption does not attach.
+          Share the <strong>poster image</strong> with the <strong>link in the message</strong> so
+          people can tap to open BloodLink. If WhatsApp drops the text, use copy & save below.
         </p>
         <div className="flex flex-col gap-2">
           {canUseWebShare() && (
@@ -243,9 +243,7 @@ export function RequestShareButton({
     const result = await sharePosterWithLink({
       file,
       title: payload.title,
-      message: payload.message,
       captionWithLink: payload.captionWithLink,
-      urlCaption: payload.urlCaption,
       url: payload.url,
     });
     setInlineHint(shareSuccessHint(result));
@@ -282,11 +280,11 @@ export function RequestShareButton({
         setInlineHint("Poster not ready");
         return;
       }
-      const result = await prepareWhatsAppPosterShare({
+      const result = await sharePosterWithLinkOnWhatsApp({
         file,
+        title: payload.title,
         captionWithLink: payload.captionWithLink,
-        urlCaption: payload.urlCaption,
-        message: payload.message,
+        url: payload.url,
       });
       setInlineHint(shareSuccessHint(result));
       setSheetOpen(false);

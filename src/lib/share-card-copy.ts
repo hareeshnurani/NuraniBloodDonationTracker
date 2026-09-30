@@ -37,11 +37,6 @@ export function getShareCardCopy(req: ShareableRequest) {
     heroHeadline: `${bloodGroup} BLOOD NEEDED`,
     unitsHero: `${unitsLeft} UNIT${unitsLeft !== 1 ? "S" : ""}`,
     unitsSub: `${req.units_filled}/${req.units_needed} filled`,
-    ctaLine: "Tap the link in this message to respond on BloodLink",
+    posterFooter: "Urgent blood donation appeal",
   };
-}
-
-export function shareCardLinkLabel(origin: string, requestId: string) {
-  const host = origin.replace(/^https?:\/\//, "").replace(/\/$/, "");
-  return `${host}/share/request/${requestId.slice(0, 8)}...`;
 }
