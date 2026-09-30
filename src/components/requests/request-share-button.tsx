@@ -137,8 +137,10 @@ function ShareFallbackSheet({
           </button>
         </div>
         <p className="mb-4 text-[14px] leading-relaxed text-[var(--label-secondary)]">
-          Share the <strong>poster image</strong> with the <strong>link in the message</strong> so
-          people can tap to open BloodLink. If WhatsApp drops the text, use copy & save below.
+          We copy the <strong>full link and appeal text</strong> first. The poster shares as the
+          image; the link goes in the <strong>caption / message</strong>. On WhatsApp, if the
+          caption is empty, use <strong>WhatsApp (poster + link)</strong> — it opens chat with the
+          link ready and saves the poster to attach.
         </p>
         <div className="flex flex-col gap-2">
           {canUseWebShare() && (
@@ -243,7 +245,9 @@ export function RequestShareButton({
     const result = await sharePosterWithLink({
       file,
       title: payload.title,
+      message: payload.message,
       captionWithLink: payload.captionWithLink,
+      imageDescription: payload.imageDescription,
       url: payload.url,
     });
     setInlineHint(shareSuccessHint(result));
@@ -283,11 +287,13 @@ export function RequestShareButton({
       const result = await sharePosterWithLinkOnWhatsApp({
         file,
         title: payload.title,
+        message: payload.message,
         captionWithLink: payload.captionWithLink,
+        imageDescription: payload.imageDescription,
         url: payload.url,
       });
       setInlineHint(shareSuccessHint(result));
-      setSheetOpen(false);
+      if (result.shared) setSheetOpen(false);
     } finally {
       setSharing(false);
     }
