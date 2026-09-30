@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import { format } from "date-fns";
 import { formatShareLocation, getShareableRequest } from "@/lib/request-share";
 import { PRIORITY_LABELS } from "@/lib/constants";
-import { SHARE_CARD_HEIGHT, SHARE_CARD_WIDTH } from "@/lib/share-card-copy";
+import { SHARE_CARD_HEIGHT, SHARE_CARD_WIDTH, shareCardLinkLabel } from "@/lib/share-card-copy";
 import { Button } from "@/components/ui/button";
 import { ShareAppealCard } from "@/components/requests/share-appeal-card";
 import { Droplets } from "lucide-react";
@@ -59,7 +59,10 @@ export default async function PublicShareRequestPage({ params }: PageProps) {
         <h1 className="text-[28px] font-bold tracking-tight text-[var(--label)]">
           Blood donation appeal
         </h1>
-        <ShareAppealCard request={req} />
+        <ShareAppealCard
+          request={req}
+          linkLabel={shareCardLinkLabel(appOrigin(), id)}
+        />
         <div className="rounded-[var(--radius-lg)] bg-[var(--surface)] p-5 text-left shadow-[var(--shadow-sm)]">
           <p className="text-[13px] font-medium uppercase tracking-wide text-[var(--label-secondary)]">
             Summary
