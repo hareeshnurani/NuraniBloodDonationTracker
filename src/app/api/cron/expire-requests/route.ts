@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { notifyUser } from "@/lib/user-notifications";
+import { onRequestsEnded } from "@/lib/chat-cleanup";
 
 export const dynamic = "force-dynamic";
 
@@ -47,7 +48,7 @@ export async function GET(request: Request) {
     })
     .in("id", ids);
 
-  await supabase.from("chat_threads").update({ status: "closed" }).in("request_id", ids);
+  await onRequestsEnded(ids);
 
   for (const req of expired) {
     await notifyUser(

@@ -10,7 +10,6 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { UseMyLocationToggle } from "@/components/donor/use-my-location-toggle";
 import { UseMyLocationAutoRefresh } from "@/components/donor/use-my-location-auto-refresh";
-import { DonationHistory } from "@/components/donor/donation-history";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
@@ -23,7 +22,7 @@ import {
 } from "@/lib/profile-location";
 import { BLOOD_GROUPS } from "@/lib/constants";
 import { getEligibleDate, isDonorEligible } from "@/lib/utils";
-import { User, Mail, Droplets, Calendar } from "lucide-react";
+import { User, Mail, Droplets, Calendar, LogOut, ClipboardList, History } from "lucide-react";
 import { format } from "date-fns";
 import type { Profile, DonorProfile } from "@/lib/types";
 
@@ -64,6 +63,12 @@ export default function ProfilePage() {
     }
     load();
   }, []);
+
+  async function handleLogout() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    window.location.href = "/login";
+  }
 
   async function handleNotifyPreference(checked: boolean) {
     const formData = new FormData();
@@ -172,7 +177,32 @@ export default function ProfilePage() {
         </div>
       </GroupedSection>
 
-      {donor && <DonationHistory />}
+      <GroupedSection title="History">
+        <GroupedRow href="/profile/requests" showChevron>
+          <GroupedRowIcon color="red">
+            <ClipboardList className="h-4 w-4" />
+          </GroupedRowIcon>
+          <div>
+            <p className="text-[15px] font-medium text-[var(--label)]">Request history</p>
+            <p className="text-[13px] text-[var(--label-secondary)]">
+              All blood requests you have raised
+            </p>
+          </div>
+        </GroupedRow>
+        {donor && (
+          <GroupedRow href="/profile/donations" showChevron>
+            <GroupedRowIcon color="green">
+              <History className="h-4 w-4" />
+            </GroupedRowIcon>
+            <div>
+              <p className="text-[15px] font-medium text-[var(--label)]">Donation history</p>
+              <p className="text-[13px] text-[var(--label-secondary)]">
+                Completed donations only — not declined or not-donated
+              </p>
+            </div>
+          </GroupedRow>
+        )}
+      </GroupedSection>
 
       {donor && (
         <GroupedSection title="Notification Preferences">
@@ -181,7 +211,7 @@ export default function ProfilePage() {
               checked={donor.notify_community_only ?? false}
               onChange={handleNotifyPreference}
               label="Community-only notifications"
-              description="Only get notified for requests in your communities. Emergency broadcasts outside your groups will not alert you when this is on—you can still open Donor and accept any matching request."
+              description="Only get notified for requests in your communities. Emergency broadcasts outside your groups will not alert you when this is on—you can still open Donate and accept any matching request."
             />
           </div>
         </GroupedSection>
@@ -240,6 +270,15 @@ export default function ProfilePage() {
           </form>
         </GroupedSection>
       )}
+
+      <GroupedSection>
+        <div className="p-4">
+          <Button type="button" variant="secondary" className="w-full" onClick={handleLogout}>
+            <LogOut className="mr-2 h-4 w-4" />
+            Log out
+          </Button>
+        </div>
+      </GroupedSection>
     </div>
   );
 }

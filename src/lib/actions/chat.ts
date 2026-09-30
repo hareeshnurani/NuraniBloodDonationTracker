@@ -28,6 +28,7 @@ export async function sendMessage(threadId: string, body: string) {
   });
 
   if (error) return { error: error.message };
+  revalidatePath("/chat");
   revalidatePath(`/chat/${threadId}`);
   return { success: true };
 }

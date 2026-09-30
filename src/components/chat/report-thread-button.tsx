@@ -3,8 +3,16 @@
 import { useState } from "react";
 import { submitContentReport } from "@/lib/actions/reports";
 import { Button } from "@/components/ui/button";
+import { Flag } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-export function ReportThreadButton({ threadId }: { threadId: string }) {
+export function ReportThreadButton({
+  threadId,
+  variant = "default",
+}: {
+  threadId: string;
+  variant?: "default" | "header";
+}) {
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
 
@@ -22,7 +30,23 @@ export function ReportThreadButton({ threadId }: { threadId: string }) {
   }
 
   if (done) {
-    return <p className="text-sm text-gray-600">Report submitted. An admin will review it.</p>;
+    return (
+      <span className="text-[12px] text-[var(--label-secondary)]">Reported</span>
+    );
+  }
+
+  if (variant === "header") {
+    return (
+      <button
+        type="button"
+        onClick={report}
+        disabled={loading}
+        aria-label="Report conversation"
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[var(--label-secondary)] transition-colors hover:bg-[var(--surface-secondary)] hover:text-[var(--label)] disabled:opacity-50"
+      >
+        <Flag className="h-5 w-5" />
+      </button>
+    );
   }
 
   return (

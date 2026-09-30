@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/auth";
 import { notifyUser } from "@/lib/user-notifications";
+import { onRequestEnded } from "@/lib/chat-cleanup";
 
 async function logAudit(
   actorId: string,
@@ -196,7 +197,7 @@ export async function adminForceCloseRequest(requestId: string, reason: string) 
     })
     .eq("id", requestId);
 
-  await supabase.from("chat_threads").update({ status: "closed" }).eq("request_id", requestId);
+  await onRequestEnded(requestId);
 
   await notifyUser(
     request.requester_id,

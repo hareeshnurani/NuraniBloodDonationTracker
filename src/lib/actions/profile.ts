@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getProfile } from "@/lib/auth";
+import { onDonorMarkedDonated } from "@/lib/chat-cleanup";
 import { lookupPincode } from "@/lib/pincode";
 import { syncProfileEffectiveLocation } from "@/lib/profile-location-sync";
 import { getEffectiveLocationState, locationUnavailableMessage } from "@/lib/profile-location";
@@ -268,9 +269,12 @@ export async function confirmDonation(
       .from("donor_profiles")
       .update({ last_donation_date: donatedDate, is_available: false })
       .eq("user_id", profile.id);
+
+    await onDonorMarkedDonated(invitationId);
   }
 
   revalidatePath("/profile");
   revalidatePath("/home");
+  revalidatePath("/chat");
   return { success: true };
 }
