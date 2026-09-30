@@ -1,10 +1,11 @@
 "use server";
 
 import { createServiceClient } from "@/lib/supabase/admin";
+import { sendWelcomeEmail } from "@/lib/auth-emails";
 
 export type RegisterResult =
   | { ok: true }
-  | { ok: false; error: string };
+  | { ok: false; error: string; code?: "already_exists" };
 
 /**
  * Creates a user without sending Supabase confirmation email.
@@ -61,7 +62,9 @@ export async function registerUser(
     if (msg.includes("already") || msg.includes("registered")) {
       return {
         ok: false,
-        error: "An account with this email already exists. Try signing in.",
+        code: "already_exists",
+        error:
+          "An account with this email already exists. Sign in or reset your password if you forgot it.",
       };
     }
     return { ok: false, error: error.message };
@@ -75,6 +78,10 @@ export async function registerUser(
     .from("profiles")
     .update({ terms_accepted_at: new Date().toISOString() })
     .eq("id", data.user.id);
+
+  void sendWelcomeEmail(trimmedEmail, trimmedName).catch((err) =>
+    console.error("[registerUser] welcome email", err)
+  );
 
   return { ok: true };
 }

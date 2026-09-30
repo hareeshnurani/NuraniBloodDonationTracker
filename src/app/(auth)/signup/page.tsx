@@ -16,16 +16,19 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [error, setError] = useState("");
+  const [existingAccount, setExistingAccount] = useState(false);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setExistingAccount(false);
 
     const result = await registerUser(name, email, password, acceptedTerms);
     if (!result.ok) {
       setError(result.error);
+      setExistingAccount(result.code === "already_exists");
       setLoading(false);
       return;
     }
@@ -124,6 +127,20 @@ export default function SignupPage() {
             {error && (
               <div className="rounded-[var(--radius-md)] bg-[var(--accent-soft)] px-4 py-3 text-[14px] text-[var(--accent)]">
                 {error}
+                {existingAccount && (
+                  <p className="mt-2">
+                    <Link
+                      href={`/forgot-password?email=${encodeURIComponent(email.trim())}`}
+                      className="font-semibold underline"
+                    >
+                      Reset your password
+                    </Link>
+                    {" · "}
+                    <Link href="/login" className="font-semibold underline">
+                      Sign in
+                    </Link>
+                  </p>
+                )}
               </div>
             )}
             <Button type="submit" className="w-full" size="lg" disabled={loading}>
@@ -131,7 +148,8 @@ export default function SignupPage() {
             </Button>
           </form>
           <p className="mt-4 text-center text-[12px] text-[var(--label-tertiary)] leading-relaxed">
-            You&apos;ll go straight to profile setup. Email verification is off until custom SMTP is configured in Supabase.
+            After sign-up we email a welcome message when mail is configured (Resend). You&apos;ll
+            continue to profile setup.
           </p>
         </div>
 
