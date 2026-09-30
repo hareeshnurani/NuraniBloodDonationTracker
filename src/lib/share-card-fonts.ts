@@ -1,40 +1,39 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const FONT_FAMILY = "BloodLinkShare";
+export const SHARE_CARD_FONT_FAMILY = "Inter";
 
-let cachedFontStyle: string | null = null;
+let cachedFontPaths: string[] | null = null;
 
-/** Embedded @font-face for SVG text (Vercel/Linux has no system-ui fonts). */
-export function getShareCardFontStyle(): string {
-  if (cachedFontStyle) return cachedFontStyle;
-
+function resolveFontPath(fileName: string): string {
   const root = process.cwd();
-  const regularPath = join(root, "src/assets/fonts/Inter-Regular.ttf");
-  const boldPath = join(root, "src/assets/fonts/Inter-Bold.ttf");
-
-  const regularB64 = readFileSync(regularPath).toString("base64");
-  const boldB64 = readFileSync(boldPath).toString("base64");
-
-  cachedFontStyle = `<style type="text/css"><![CDATA[
-@font-face {
-  font-family: '${FONT_FAMILY}';
-  src: url('data:font/ttf;base64,${regularB64}') format('truetype');
-  font-weight: 100 500;
-  font-style: normal;
+  const candidates = [
+    join(root, "src/assets/fonts", fileName),
+    join(root, "public/fonts", fileName),
+  ];
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) return candidate;
+  }
+  throw new Error(`Share card font missing: ${fileName} (cwd=${root})`);
 }
-@font-face {
-  font-family: '${FONT_FAMILY}';
-  src: url('data:font/ttf;base64,${boldB64}') format('truetype');
-  font-weight: 600 900;
-  font-style: normal;
-}
-text { font-family: '${FONT_FAMILY}', sans-serif; }
-]]></style>`;
 
-  return cachedFontStyle;
+/** Absolute paths to TTF files for @resvg/resvg-js (sharp/librsvg ignores @font-face). */
+export function getShareCardFontPaths(): string[] {
+  if (cachedFontPaths) return cachedFontPaths;
+  cachedFontPaths = [
+    resolveFontPath("Inter-Regular.ttf"),
+    resolveFontPath("Inter-Bold.ttf"),
+  ];
+  return cachedFontPaths;
+}
+
+/** Verify fonts readable at startup of render (clear error if Vercel trace omitted files). */
+export function assertShareCardFontsReady(): void {
+  for (const path of getShareCardFontPaths()) {
+    readFileSync(path);
+  }
 }
 
 export function shareCardFontFamily() {
-  return FONT_FAMILY;
+  return SHARE_CARD_FONT_FAMILY;
 }
