@@ -1,7 +1,5 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
-
-export const SHARE_CARD_FONT_FAMILY = "Inter";
 
 let cachedFontPaths: string[] | null = null;
 
@@ -17,7 +15,7 @@ function resolveFontPath(fileName: string): string {
   throw new Error(`Share card font missing: ${fileName} (cwd=${root})`);
 }
 
-/** Absolute paths to TTF files for @resvg/resvg-js (sharp/librsvg ignores @font-face). */
+/** Absolute paths to bundled Inter TTF for @vercel/og. */
 export function getShareCardFontPaths(): string[] {
   if (cachedFontPaths) return cachedFontPaths;
   cachedFontPaths = [
@@ -25,15 +23,4 @@ export function getShareCardFontPaths(): string[] {
     resolveFontPath("Inter-Bold.ttf"),
   ];
   return cachedFontPaths;
-}
-
-/** Verify fonts readable at startup of render (clear error if Vercel trace omitted files). */
-export function assertShareCardFontsReady(): void {
-  for (const path of getShareCardFontPaths()) {
-    readFileSync(path);
-  }
-}
-
-export function shareCardFontFamily() {
-  return SHARE_CARD_FONT_FAMILY;
 }
