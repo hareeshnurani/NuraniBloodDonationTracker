@@ -24,4 +24,13 @@ describe("share card PNG", () => {
     expect(buf[0]).toBe(0x89);
     expect(buf[1]).toBe(0x50);
   });
+
+  it("embeds Inter fonts in SVG", async () => {
+    const { buildShareCardSvg } = await import("@/lib/share-card-svg");
+    const { getShareCardFontStyle } = await import("@/lib/share-card-fonts");
+    const svg = buildShareCardSvg(mockReq, getShareCardFontStyle());
+    expect(svg).toContain("@font-face");
+    expect(svg).toContain("BloodLink");
+    expect(svg).toContain("O+");
+  });
 });
