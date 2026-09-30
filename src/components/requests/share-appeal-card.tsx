@@ -1,13 +1,14 @@
+import Link from "next/link";
 import type { ShareableRequest } from "@/lib/request-share";
 import { getShareCardCopy } from "@/lib/share-card-copy";
 
-/** HTML appeal poster — matches share PNG layout; always legible in browser. */
+/** HTML appeal poster — matches share PNG; link + QR visible without sharing. */
 export function ShareAppealCard({
   request,
-  linkLabel,
+  shareUrl,
 }: {
   request: ShareableRequest;
-  linkLabel?: string;
+  shareUrl: string;
 }) {
   const copy = getShareCardCopy(request);
 
@@ -57,16 +58,31 @@ export function ShareAppealCard({
         </div>
       </div>
 
-      <div className="flex flex-col gap-1 border-t border-white/20 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+      <div className="flex flex-col gap-3 border-t border-white/20 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <div className="text-left text-white">
           <p className="text-[17px] font-bold">BloodLink</p>
-          <p className="text-[12px] text-white/75 sm:text-[13px]">{copy.ctaLine}</p>
-        </div>
-        {linkLabel && (
-          <p className="truncate text-[11px] font-medium text-white/80 sm:max-w-[220px] sm:text-right sm:text-[12px]">
-            {linkLabel}
+          <p className="text-[12px] text-white/75 sm:text-[13px]">
+            Shared posters include this link and QR on the image.
           </p>
-        )}
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="rounded-lg bg-white p-1.5">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={`/api/requests/${request.id}/share-qr`}
+              alt="QR code to open this blood request"
+              width={80}
+              height={80}
+              className="h-20 w-20"
+            />
+          </div>
+          <Link
+            href={shareUrl}
+            className="max-w-[200px] break-all text-left text-[11px] font-semibold text-white underline sm:max-w-[240px] sm:text-[12px]"
+          >
+            {shareUrl}
+          </Link>
+        </div>
       </div>
     </div>
   );

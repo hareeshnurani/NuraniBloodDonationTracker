@@ -5,8 +5,9 @@ export type SharePosterPayload = {
   url: string;
   message: string;
   title: string;
-  /** Appeal text plus public share URL — use as share caption / WhatsApp text */
   captionWithLink: string;
+  /** Short caption — URL only (works better with image on some WhatsApp builds) */
+  urlCaption: string;
 };
 
 export function buildSharePosterPayload(
@@ -20,6 +21,7 @@ export function buildSharePosterPayload(
     message,
     title: `Blood needed — ${request.primary_blood_group}`,
     captionWithLink: `${message}\n\n${url}`,
+    urlCaption: url,
   };
 }
 
@@ -27,16 +29,30 @@ export function canUseWebShare(): boolean {
   return typeof navigator !== "undefined" && typeof navigator.share === "function";
 }
 
-/** Share poster file with caption that includes the tappable link. Never falls back to link-only. */
+export type SharePosterResult = {
+  shared: boolean;
+  copied: boolean;
+};
+
+/** Copy link, then share poster. Caption tries URL-first for WhatsApp. */
 export async function sharePosterWithLink(opts: {
   file: File;
   title: string;
+  message: string;
   captionWithLink: string;
+  urlCaption: string;
   url: string;
-}): Promise<boolean> {
-  if (!canUseWebShare()) return false;
+}): Promise<SharePosterResult> {
+  const copied = await copyShareText(opts.captionWithLink);
 
+  if (!canUseWebShare()) {
+    return { shared: false, copied };
+  }
+
+  const urlBlock = `${opts.url}\n\n${opts.message}`;
   const attempts: ShareData[] = [
+    { files: [opts.file], text: opts.urlCaption },
+    { files: [opts.file], text: urlBlock },
     { files: [opts.file], text: opts.captionWithLink, title: opts.title },
     { files: [opts.file], text: opts.captionWithLink },
     { files: [opts.file], text: opts.captionWithLink, url: opts.url, title: opts.title },
@@ -46,13 +62,13 @@ export async function sharePosterWithLink(opts: {
     try {
       if (navigator.canShare && !navigator.canShare(data)) continue;
       await navigator.share(data);
-      return true;
+      return { shared: true, copied };
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") throw err;
     }
   }
 
-  return false;
+  return { shared: false, copied };
 }
 
 export function openWhatsAppWithText(text: string) {
@@ -81,13 +97,45 @@ export function downloadShareFile(file: File) {
   URL.revokeObjectURL(href);
 }
 
-/** WhatsApp: pre-fill message with link, copy caption, save poster for attach. */
+/** WhatsApp: try image+URL share; else save poster (has QR/link) + open chat with URL. */
 export async function prepareWhatsAppPosterShare(opts: {
   file: File;
   captionWithLink: string;
-}): Promise<{ copied: boolean }> {
+  urlCaption: string;
+  message: string;
+}): Promise<SharePosterResult> {
   const copied = await copyShareText(opts.captionWithLink);
+
+  if (canUseWebShare()) {
+    const attempts: ShareData[] = [
+      { files: [opts.file], text: opts.urlCaption },
+      { files: [opts.file], text: `${opts.urlCaption}\n\n${opts.message}` },
+    ];
+    for (const data of attempts) {
+      try {
+        if (navigator.canShare && !navigator.canShare(data)) continue;
+        await navigator.share(data);
+        return { shared: true, copied };
+      } catch (err) {
+        if (err instanceof Error && err.name === "AbortError") throw err;
+      }
+    }
+  }
+
   downloadShareFile(opts.file);
-  openWhatsAppWithText(opts.captionWithLink);
-  return { copied };
+  openWhatsAppWithText(opts.urlCaption);
+  return { shared: false, copied };
+}
+
+export function shareSuccessHint(result: SharePosterResult): string {
+  if (result.shared && result.copied) {
+    return "Shared. Link also copied — poster includes QR + URL if caption is missing.";
+  }
+  if (result.shared) {
+    return "Shared. The poster includes the link and QR code on the image.";
+  }
+  if (result.copied) {
+    return "Link copied. Paste as caption; poster has QR + URL too.";
+  }
+  return "Poster includes link and QR. Paste the link from the sheet if needed.";
 }
