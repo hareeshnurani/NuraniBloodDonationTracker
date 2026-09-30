@@ -50,4 +50,11 @@ describe("buildSharePosterPayload", () => {
     expect(attempts[0].text).toBe(payload.captionWithLink);
     expect(attempts[0].url).toBe(payload.url);
   });
+
+  it("orders Android Chrome file share with URL-first caption", () => {
+    const payload = buildSharePosterPayload(mockReq, "https://example.com");
+    const file = new File(["x"], "bloodlink.png", { type: "image/png" });
+    const attempts = buildImageFileShareAttempts(file, payload, "android-chrome");
+    expect(attempts[0].text).toBe(payload.imageDescription);
+  });
 });
