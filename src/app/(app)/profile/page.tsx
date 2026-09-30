@@ -24,6 +24,7 @@ import { BLOOD_GROUPS } from "@/lib/constants";
 import { getEligibleDate, isDonorEligible } from "@/lib/utils";
 import { User, Mail, Droplets, Calendar, LogOut, ClipboardList, History } from "lucide-react";
 import { format } from "date-fns";
+import { AccountSecurityPanel } from "@/components/profile/account-security-panel";
 import type { Profile, DonorProfile } from "@/lib/types";
 
 export default function ProfilePage() {
@@ -141,6 +142,8 @@ export default function ProfilePage() {
           </div>
         </GroupedRow>
       </GroupedSection>
+
+      <AccountSecurityPanel currentEmail={profile.email} />
 
       <GroupedSection
         title="Location"
