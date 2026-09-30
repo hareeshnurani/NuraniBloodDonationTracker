@@ -1,8 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { shareRequestText, shareRequestUrl, type ShareableRequest } from "@/lib/request-share";
-import { Share2, X, Link2, Download } from "lucide-react";
+import type { ShareableRequest } from "@/lib/request-share";
+import { getAppUrl } from "@/lib/app-url";
+import {
+  buildSharePosterPayload,
+  canUseWebShare,
+  copyShareText,
+  downloadShareFile,
+  prepareWhatsAppPosterShare,
+  sharePosterWithLink,
+} from "@/lib/share-native";
+import { Share2, X, Link2, Download, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -21,10 +30,6 @@ type SharePayload = Pick<
   | "pincode"
   | "status"
 >;
-
-function canUseWebShare() {
-  return typeof navigator !== "undefined" && typeof navigator.share === "function";
-}
 
 async function loadShareCardBlob(requestId: string, attempt = 0): Promise<Blob> {
   const cardRes = await fetch(`/api/requests/${requestId}/share-card?attempt=${attempt}`, {
@@ -54,89 +59,59 @@ async function loadShareCardBlobWithRetry(requestId: string): Promise<Blob> {
   throw lastError ?? new Error("Could not load share image");
 }
 
-async function invokeNativeShare(opts: {
-  title: string;
-  message: string;
-  url: string;
-  file: File | null;
-}) {
-  const { title, message, url, file } = opts;
-  const captionWithLink = `${message}\n\n${url}`;
-
-  if (!canUseWebShare()) return false;
-
-  const attempts: ShareData[] = [];
-
-  if (file) {
-    // WhatsApp / mobile: image + caption; URL in text stays tappable
-    attempts.push({ files: [file], text: captionWithLink, title });
-    attempts.push({ files: [file], text: message, url, title });
-    attempts.push({ files: [file], title, text: `${message}\n${url}` });
-  }
-  attempts.push({ url, title, text: captionWithLink });
-  attempts.push({ title, text: captionWithLink });
-
-  for (const data of attempts) {
-    try {
-      if (navigator.canShare && !navigator.canShare(data)) continue;
-      await navigator.share(data);
-      return true;
-    } catch (err) {
-      if (err instanceof Error && err.name === "AbortError") throw err;
-    }
-  }
-
-  return false;
-}
-
 function ShareFallbackSheet({
   open,
   onClose,
-  url,
-  message,
+  payload,
   file,
   cardLoading,
-  onNativeShare,
+  onShareImageAndLink,
+  onWhatsApp,
   sharing,
 }: {
   open: boolean;
   onClose: () => void;
-  url: string;
-  message: string;
+  payload: { captionWithLink: string; url: string } | null;
   file: File | null;
   cardLoading: boolean;
-  onNativeShare: () => void;
+  onShareImageAndLink: () => void;
+  onWhatsApp: () => void;
   sharing: boolean;
 }) {
   const [hint, setHint] = useState("");
 
-  if (!open) return null;
+  if (!open || !payload) return null;
 
-  async function copyLink() {
-    try {
-      await navigator.clipboard.writeText(`${message}\n\n${url}`);
-      setHint("Copied poster text and link");
-    } catch {
-      setHint("Could not copy — select and copy the link manually");
-    }
+  async function copyAll() {
+    const ok = await copyShareText(payload.captionWithLink);
+    setHint(ok ? "Copied poster text and link" : "Could not copy — use the link below");
   }
 
-  function downloadImage() {
+  function saveImage() {
     if (!file) {
-      if (cardLoading) {
-        setHint("Image still loading — try again in a moment");
-        return;
-      }
-      setHint("Image unavailable — use Copy link or open the public share page");
+      setHint(
+        cardLoading
+          ? "Poster still loading…"
+          : "Poster unavailable — copy the link and share manually"
+      );
       return;
     }
-    const href = URL.createObjectURL(file);
-    const a = document.createElement("a");
-    a.href = href;
-    a.download = file.name;
-    a.click();
-    URL.revokeObjectURL(href);
-    setHint("Image downloaded — attach it in WhatsApp Status or chat");
+    downloadShareFile(file);
+    setHint("Poster saved — attach it in your chat after pasting the link");
+  }
+
+  async function copyAndSave() {
+    if (!file) {
+      await copyAll();
+      return;
+    }
+    const ok = await copyShareText(payload.captionWithLink);
+    downloadShareFile(file);
+    setHint(
+      ok
+        ? "Link copied and poster saved — paste text and attach image in WhatsApp"
+        : "Poster saved — paste the link from below into your chat"
+    );
   }
 
   return (
@@ -149,7 +124,7 @@ function ShareFallbackSheet({
       />
       <div className="relative z-10 w-full max-w-md rounded-t-[20px] bg-[var(--surface)] p-5 shadow-[var(--shadow-lg)] sm:rounded-[var(--radius-xl)]">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-[17px] font-semibold text-[var(--label)]">Share request</h2>
+          <h2 className="text-[17px] font-semibold text-[var(--label)]">Share poster + link</h2>
           <button
             type="button"
             onClick={onClose}
@@ -159,27 +134,42 @@ function ShareFallbackSheet({
           </button>
         </div>
         <p className="mb-4 text-[14px] leading-relaxed text-[var(--label-secondary)]">
-          Share sends the <strong>poster image</strong> and a <strong>tappable link</strong> in the
-          caption so people can open BloodLink and respond.
+          Recipients should get the <strong>blood poster</strong> and a{" "}
+          <strong>tappable link</strong> to open the request on BloodLink.
         </p>
         <div className="flex flex-col gap-2">
           {canUseWebShare() && (
-            <Button type="button" className="w-full gap-2" disabled={sharing} onClick={onNativeShare}>
+            <Button
+              type="button"
+              className="w-full gap-2"
+              disabled={sharing || cardLoading || !file}
+              onClick={onShareImageAndLink}
+            >
               <Share2 className="h-4 w-4" />
-              {sharing ? "Opening…" : "Share…"}
+              {sharing ? "Opening…" : "Share image + link"}
             </Button>
           )}
-          <Button type="button" variant="secondary" className="w-full gap-2" onClick={copyLink}>
-            <Link2 className="h-4 w-4" />
-            Copy link & text
+          <Button
+            type="button"
+            variant="tinted"
+            className="w-full gap-2"
+            disabled={cardLoading || !file}
+            onClick={onWhatsApp}
+          >
+            <MessageCircle className="h-4 w-4" />
+            WhatsApp (poster + link)
           </Button>
-          <Button type="button" variant="secondary" className="w-full gap-2" onClick={downloadImage}>
+          <Button type="button" variant="secondary" className="w-full gap-2" onClick={copyAndSave}>
             <Download className="h-4 w-4" />
-            Download appeal image
+            Copy link & save poster
+          </Button>
+          <Button type="button" variant="secondary" className="w-full gap-2" onClick={copyAll}>
+            <Link2 className="h-4 w-4" />
+            Copy text & link only
           </Button>
         </div>
         {hint && <p className="mt-3 text-[13px] text-[var(--success)]">{hint}</p>}
-        <p className="mt-3 break-all text-[11px] text-[var(--label-tertiary)]">{url}</p>
+        <p className="mt-3 break-all text-[11px] text-[var(--label-tertiary)]">{payload.url}</p>
       </div>
     </div>
   );
@@ -199,10 +189,14 @@ export function RequestShareButton({
   const [cardLoading, setCardLoading] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [inlineHint, setInlineHint] = useState("");
-  const [sheetUrl, setSheetUrl] = useState("");
+  const [sheetPayload, setSheetPayload] = useState<ReturnType<
+    typeof buildSharePosterPayload
+  > | null>(null);
 
-  const title = `Blood needed — ${request.primary_blood_group}`;
-  const message = shareRequestText(request as ShareableRequest);
+  const getPayload = useCallback(
+    () => buildSharePosterPayload(request as ShareableRequest, getAppUrl()),
+    [request]
+  );
 
   const prefetchCard = useCallback(async () => {
     setCardLoading(true);
@@ -222,41 +216,75 @@ export function RequestShareButton({
     void prefetchCard();
   }, [prefetchCard]);
 
-  async function runShare() {
-    const origin = window.location.origin;
-    const url = shareRequestUrl(origin, request.id);
-    const captionWithLink = `${message}\n\n${url}`;
+  async function ensurePosterFile(): Promise<File | null> {
+    if (cardFile) return cardFile;
+    try {
+      const blob = await loadShareCardBlobWithRetry(request.id);
+      const file = new File([blob], `bloodlink-${request.id.slice(0, 8)}.png`, {
+        type: "image/png",
+      });
+      setCardFile(file);
+      return file;
+    } catch {
+      return null;
+    }
+  }
 
+  async function runShareImageAndLink(): Promise<boolean> {
+    const payload = getPayload();
+    const file = await ensurePosterFile();
+    if (!file) {
+      setInlineHint("Poster not ready — try again");
+      return false;
+    }
+    return sharePosterWithLink({
+      file,
+      title: payload.title,
+      captionWithLink: payload.captionWithLink,
+      url: payload.url,
+    });
+  }
+
+  async function runShare() {
+    const payload = getPayload();
     setSharing(true);
     setInlineHint("");
+    setSheetPayload(payload);
 
     try {
-      let file = cardFile;
-      if (!file) {
-        const blob = await loadShareCardBlobWithRetry(request.id);
-        file = new File([blob], `bloodlink-${request.id.slice(0, 8)}.png`, { type: "image/png" });
-        setCardFile(file);
+      const shared = await runShareImageAndLink();
+      if (shared) {
+        setSheetOpen(false);
+        return;
       }
-
-      if (canUseWebShare()) {
-        const shared = await invokeNativeShare({
-          title,
-          message,
-          url,
-          file,
-        });
-        if (shared) {
-          setSheetOpen(false);
-          return;
-        }
-      }
-
-      setSheetUrl(url);
       setSheetOpen(true);
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") return;
-      setSheetUrl(shareRequestUrl(window.location.origin, request.id));
       setSheetOpen(true);
+    } finally {
+      setSharing(false);
+    }
+  }
+
+  async function handleWhatsAppShare() {
+    const payload = getPayload();
+    setSharing(true);
+    try {
+      const file = await ensurePosterFile();
+      if (!file) {
+        setInlineHint("Poster not ready");
+        return;
+      }
+      const { copied } = await prepareWhatsAppPosterShare({
+        file,
+        captionWithLink: payload.captionWithLink,
+      });
+      setInlineHint(
+        copied
+          ? "WhatsApp opened — attach the saved poster if it is not already there"
+          : "WhatsApp opened — paste the link and attach the saved poster"
+      );
+      setSheetOpen(false);
     } finally {
       setSharing(false);
     }
@@ -269,22 +297,14 @@ export function RequestShareButton({
     await runShare();
   }
 
-  async function handleSheetNativeShare() {
-    const origin = window.location.origin;
-    const url = shareRequestUrl(origin, request.id);
+  async function handleSheetShareImageAndLink() {
     setSharing(true);
     try {
-      const shared = await invokeNativeShare({
-        title,
-        message,
-        url,
-        file: cardFile,
-      });
+      const shared = await runShareImageAndLink();
       if (shared) setSheetOpen(false);
-      else setInlineHint("Could not open share menu — use copy or download below");
     } catch (err) {
       if (err instanceof Error && err.name !== "AbortError") {
-        setInlineHint("Share cancelled or blocked");
+        setInlineHint("Could not share — try WhatsApp or copy & save");
       }
     } finally {
       setSharing(false);
@@ -298,7 +318,7 @@ export function RequestShareButton({
           <button
             type="button"
             aria-label="Share request"
-            disabled={sharing}
+            disabled={sharing || cardLoading}
             onTouchStart={() => void prefetchCard()}
             onClick={handleShareClick}
             className={cn(
@@ -319,7 +339,7 @@ export function RequestShareButton({
         <div className={cn("flex flex-col gap-1", className)}>
           <button
             type="button"
-            disabled={sharing}
+            disabled={sharing || cardLoading}
             onTouchStart={() => void prefetchCard()}
             onClick={handleShareClick}
             className={cn(
@@ -329,7 +349,7 @@ export function RequestShareButton({
             )}
           >
             <Share2 className="h-4 w-4" />
-            {sharing ? "Preparing…" : "Share request"}
+            {cardLoading ? "Loading poster…" : sharing ? "Sharing…" : "Share poster + link"}
           </button>
           {inlineHint && <p className="text-[12px] text-[var(--label-secondary)]">{inlineHint}</p>}
         </div>
@@ -338,11 +358,11 @@ export function RequestShareButton({
       <ShareFallbackSheet
         open={sheetOpen}
         onClose={() => setSheetOpen(false)}
-        url={sheetUrl}
-        message={sheetUrl ? `${message}\n\n${sheetUrl}` : message}
+        payload={sheetPayload}
         file={cardFile}
         cardLoading={cardLoading}
-        onNativeShare={handleSheetNativeShare}
+        onShareImageAndLink={handleSheetShareImageAndLink}
+        onWhatsApp={handleWhatsAppShare}
         sharing={sharing}
       />
     </>
