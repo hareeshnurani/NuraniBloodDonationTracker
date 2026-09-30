@@ -8,9 +8,13 @@ import { UserLocationEditor, type UserLocationValue } from "@/components/user-lo
 import { lookupPincode } from "@/lib/pincode";
 import { Switch } from "@/components/ui/switch";
 import { BLOOD_GROUPS } from "@/lib/constants";
-import { Droplets } from "lucide-react";
+import { Droplets, ChevronLeft } from "lucide-react";
+import { OnboardingIntro } from "@/components/onboarding/onboarding-intro";
+
+type OnboardingStep = "intro" | "profile";
 
 export default function OnboardingPage() {
+  const [step, setStep] = useState<OnboardingStep>("intro");
   const [willingToDonate, setWillingToDonate] = useState(false);
   const [useMyLocation, setUseMyLocation] = useState(false);
   const [location, setLocation] = useState<UserLocationValue>({
@@ -46,16 +50,33 @@ export default function OnboardingPage() {
     window.location.href = "/home";
   }
 
+  if (step === "intro") {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[var(--background)] px-5 py-8">
+        <OnboardingIntro onContinue={() => setStep("profile")} onSkip={() => setStep("profile")} />
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-[var(--background)] px-5 py-8">
       <div className="w-full max-w-lg animate-scale-in">
+        <button
+          type="button"
+          onClick={() => setStep("intro")}
+          className="mb-4 inline-flex items-center gap-1 text-[15px] font-medium text-[var(--accent)] hover:opacity-80"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          How BloodLink works
+        </button>
+
         <div className="mb-6 text-center">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-[18px] bg-[var(--accent)] text-white">
             <Droplets className="h-7 w-7" />
           </div>
           <h1 className="text-[28px] font-bold tracking-tight text-[var(--label)]">Complete your profile</h1>
           <p className="mt-1.5 text-[15px] text-[var(--label-secondary)]">
-            Tell us about yourself. An admin will review your account.
+            Add your name and location so we can show relevant requests and communities. Donor details are optional.
           </p>
         </div>
 
@@ -67,6 +88,9 @@ export default function OnboardingPage() {
             </div>
             <div>
               <Label>Your location</Label>
+              <p className="mb-2 text-[12px] text-[var(--label-secondary)]">
+                Used to estimate distance to patients—never shown as your exact address on public lists.
+              </p>
               <div className="mb-3 rounded-[var(--radius-md)] bg-[var(--surface-secondary)] p-3">
                 <Switch
                   checked={useMyLocation}
@@ -120,7 +144,9 @@ export default function OnboardingPage() {
                     <Select id="blood_group" name="blood_group" required>
                       <option value="">Select blood group</option>
                       {BLOOD_GROUPS.map((bg) => (
-                        <option key={bg} value={bg}>{bg}</option>
+                        <option key={bg} value={bg}>
+                          {bg}
+                        </option>
                       ))}
                     </Select>
                   </div>
@@ -141,7 +167,7 @@ export default function OnboardingPage() {
               </div>
             )}
             <Button type="submit" className="w-full" size="lg" disabled={loading}>
-              {loading ? "Submitting..." : "Submit for approval"}
+              {loading ? "Saving..." : "Continue to BloodLink"}
             </Button>
           </form>
         </div>
