@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 
 export const SHARE_CARD_FONT_FAMILY = "Inter";
@@ -17,7 +17,7 @@ function resolveFontPath(fileName: string): string {
   throw new Error(`Share card font missing: ${fileName} (cwd=${root})`);
 }
 
-/** Absolute paths to TTF files for @resvg/resvg-js (sharp/librsvg ignores @font-face). */
+/** Absolute paths to bundled Inter TTF for @vercel/og. */
 export function getShareCardFontPaths(): string[] {
   if (cachedFontPaths) return cachedFontPaths;
   cachedFontPaths = [
