@@ -6,6 +6,7 @@ import {
   extendDeadline,
   publishBloodRequest,
 } from "@/lib/actions/requests";
+import { requestSubmittedQuery } from "@/lib/request-submitted-query";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 
@@ -25,7 +26,16 @@ export function RequestActions({ requestId, status, canExtend }: Props) {
 
   async function handlePublish() {
     setLoading(true);
-    await publishBloodRequest(requestId);
+    const result = await publishBloodRequest(requestId);
+    if (result.error) {
+      setError(result.error);
+      setLoading(false);
+      return;
+    }
+    if (result.broadcast) {
+      window.location.href = `/requests/${requestId}?${requestSubmittedQuery(result.broadcast)}`;
+      return;
+    }
     window.location.reload();
   }
 

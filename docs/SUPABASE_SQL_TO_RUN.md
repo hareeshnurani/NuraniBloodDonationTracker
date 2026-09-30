@@ -69,4 +69,22 @@ After applying, set **Vercel** env:
 - Optional `BLOODLINK_EMAIL_ALL_INVITES=true` — email on every invite, not only emergencies
 - Optional `BLOODLINK_MAX_REQUESTS_PER_DAY=5` — rate limit request creation
 
-**Prod checklist (P0-1):** Record “schema at **012**” in your runbook after 008–011 are also applied.
+**Prod checklist (P0-1):** Record “schema at **013**” in your runbook after 008–012 are also applied.
+
+---
+
+## 013 — Private community creation (RLS SELECT for creator)
+
+**Symptom:** Creating a **private** community fails with  
+`new row violates row-level security policy for table "communities"`. Public communities work.
+
+**Cause:** `INSERT … RETURNING` needs SELECT; private rows were not visible until the founder joined `community_members`.
+
+Run in SQL Editor (or apply `supabase/migrations/013_private_community_creator_select.sql`):
+
+```sql
+CREATE POLICY "Creators view own communities" ON communities FOR SELECT
+  USING (creator_id = auth.uid());
+```
+
+If the policy already exists, skip.

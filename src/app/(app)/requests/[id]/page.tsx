@@ -15,13 +15,17 @@ import {
 } from "@/lib/donor-request-response";
 import type { BloodGroup } from "@/lib/constants";
 import { RequestShareButton } from "@/components/requests/request-share-button";
+import { RequestSubmittedBannerFromQuery } from "@/components/requests/request-submitted-banner";
 
 export default async function RequestDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ notified?: string; near?: string; community?: string }>;
 }) {
   const { id } = await params;
+  const query = await searchParams;
   const { profile } = await requireActiveProfile();
   const supabase = await createClient();
 
@@ -91,6 +95,7 @@ export default async function RequestDetailPage({
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
+      {isOwner && <RequestSubmittedBannerFromQuery searchParams={query} />}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <Link href="/home" className="text-sm text-red-600 hover:underline">← Back</Link>
@@ -234,7 +239,9 @@ export default async function RequestDetailPage({
               ))}
             </ul>
           ) : (
-            <p className="mt-2 text-sm text-gray-500">No donors notified yet.</p>
+            <p className="mt-2 text-sm text-gray-500">
+              No matching donors were notified yet. Share your appeal link to reach more people.
+            </p>
           )}
         </Card>
       )}
