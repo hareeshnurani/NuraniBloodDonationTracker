@@ -1,10 +1,5 @@
-import { ImageResponse } from "next/og";
 import { getShareableRequest } from "@/lib/request-share";
-import {
-  buildShareCardElement,
-  SHARE_CARD_HEIGHT,
-  SHARE_CARD_WIDTH,
-} from "@/lib/share-card-element";
+import { renderShareCardPng } from "@/lib/share-card-render";
 
 export const runtime = "nodejs";
 
@@ -20,10 +15,12 @@ export async function GET(
       return new Response("Not found", { status: 404 });
     }
 
-    return new ImageResponse(buildShareCardElement(req), {
-      width: SHARE_CARD_WIDTH,
-      height: SHARE_CARD_HEIGHT,
+    const png = await renderShareCardPng(req);
+
+    return new Response(new Uint8Array(png), {
+      status: 200,
       headers: {
+        "Content-Type": "image/png",
         "Cache-Control": "public, max-age=3600, s-maxage=86400",
       },
     });

@@ -7,7 +7,7 @@ import { PRIORITY_LABELS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { ShareRequestCardImage } from "@/components/requests/share-request-card-image";
 import { Droplets } from "lucide-react";
-import { SHARE_CARD_HEIGHT, SHARE_CARD_WIDTH } from "@/lib/share-card-element";
+import { SHARE_CARD_HEIGHT, SHARE_CARD_WIDTH } from "@/lib/share-card-svg";
 
 type PageProps = { params: Promise<{ id: string }> };
 
