@@ -8,6 +8,7 @@ import {
   canUseWebShare,
   copyShareText,
   downloadShareFile,
+  isMobileShareDevice,
   sharePosterWithLink,
   sharePosterWithLinkOnWhatsApp,
   shareSuccessHint,
@@ -137,10 +138,9 @@ function ShareFallbackSheet({
           </button>
         </div>
         <p className="mb-4 text-[14px] leading-relaxed text-[var(--label-secondary)]">
-          We copy the <strong>full link and appeal text</strong> first. The poster shares as the
-          image; the link goes in the <strong>caption / message</strong>. On WhatsApp, if the
-          caption is empty, use <strong>WhatsApp (poster + link)</strong> — it opens chat with the
-          link ready and saves the poster to attach.
+          The <strong>link and appeal text</strong> are sent in the chat message (not copied). For
+          WhatsApp with the poster file, use <strong>WhatsApp (poster + link)</strong> — opens chat
+          with the message filled in; attach the saved poster once.
         </p>
         <div className="flex flex-col gap-2">
           {canUseWebShare() && (
@@ -242,14 +242,17 @@ export function RequestShareButton({
       setInlineHint("Poster not ready — try again");
       return null;
     }
-    const result = await sharePosterWithLink({
+    const shareOpts = {
       file,
       title: payload.title,
       message: payload.message,
       captionWithLink: payload.captionWithLink,
       imageDescription: payload.imageDescription,
       url: payload.url,
-    });
+    };
+    const result = isMobileShareDevice()
+      ? await sharePosterWithLinkOnWhatsApp(shareOpts)
+      : await sharePosterWithLink(shareOpts);
     setInlineHint(shareSuccessHint(result));
     return result;
   }
