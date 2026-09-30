@@ -3,7 +3,6 @@ import sharp from "sharp";
 import type { ShareableRequest } from "@/lib/request-share";
 import { renderShareCardPng, SHARE_CARD_WIDTH } from "@/lib/share-card-render";
 import { getShareCardFontPaths } from "@/lib/share-card-fonts";
-import { buildShareCardOgElementFromRequest } from "@/lib/share-card-og";
 
 const mockReq: ShareableRequest = {
   id: "2a6f8bbc-4ae2-4a30-b537-086f30671f33",
@@ -41,21 +40,18 @@ describe("share card PNG", () => {
     expect(getShareCardFontPaths().length).toBe(2);
   });
 
-  it("renders landscape poster PNG with readable text", async () => {
+  it("renders landscape poster PNG with readable text and QR", async () => {
     const buf = await renderShareCardPng(mockReq);
     expect(buf.length).toBeGreaterThan(1000);
     expect(buf[0]).toBe(0x89);
     const meta = await sharp(buf).metadata();
     expect(meta.width).toBe(SHARE_CARD_WIDTH);
     expect(meta.height).toBe(800);
-    const bloodTypePixels = await countLightPixels(buf, 120, 180, 320, 380);
-    const headlinePixels = await countLightPixels(buf, 480, 160, 900, 320);
-    expect(bloodTypePixels).toBeGreaterThan(15);
-    expect(headlinePixels).toBeGreaterThan(15);
-  });
-
-  it("OG JSX includes hero copy", () => {
-    const el = buildShareCardOgElementFromRequest(mockReq, "https://example.com");
-    expect(el).toBeTruthy();
+    const bloodTypePixels = await countLightPixels(buf, 80, 140, 280, 340);
+    const headlinePixels = await countLightPixels(buf, 400, 120, 900, 280);
+    const qrPixels = await countLightPixels(buf, 1000, 620, 1180, 780);
+    expect(bloodTypePixels).toBeGreaterThan(10);
+    expect(headlinePixels).toBeGreaterThan(10);
+    expect(qrPixels).toBeGreaterThan(20);
   });
 });

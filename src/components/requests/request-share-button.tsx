@@ -10,6 +10,7 @@ import {
   downloadShareFile,
   prepareWhatsAppPosterShare,
   sharePosterWithLink,
+  shareSuccessHint,
 } from "@/lib/share-native";
 import { Share2, X, Link2, Download, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -136,8 +137,8 @@ function ShareFallbackSheet({
           </button>
         </div>
         <p className="mb-4 text-[14px] leading-relaxed text-[var(--label-secondary)]">
-          Recipients should get the <strong>blood poster</strong> and a{" "}
-          <strong>tappable link</strong> to open the request on BloodLink.
+          Every poster includes a <strong>QR code</strong> and the <strong>full link</strong> on the
+          image. We copy the link when you share — paste it in WhatsApp if the caption does not attach.
         </p>
         <div className="flex flex-col gap-2">
           {canUseWebShare() && (
@@ -232,19 +233,23 @@ export function RequestShareButton({
     }
   }
 
-  async function runShareImageAndLink(): Promise<boolean> {
+  async function runShareImageAndLink() {
     const payload = getPayload();
     const file = await ensurePosterFile();
     if (!file) {
       setInlineHint("Poster not ready — try again");
-      return false;
+      return null;
     }
-    return sharePosterWithLink({
+    const result = await sharePosterWithLink({
       file,
       title: payload.title,
+      message: payload.message,
       captionWithLink: payload.captionWithLink,
+      urlCaption: payload.urlCaption,
       url: payload.url,
     });
+    setInlineHint(shareSuccessHint(result));
+    return result;
   }
 
   async function runShare() {
@@ -254,8 +259,8 @@ export function RequestShareButton({
     setSheetPayload(payload);
 
     try {
-      const shared = await runShareImageAndLink();
-      if (shared) {
+      const result = await runShareImageAndLink();
+      if (result?.shared) {
         setSheetOpen(false);
         return;
       }
@@ -277,15 +282,13 @@ export function RequestShareButton({
         setInlineHint("Poster not ready");
         return;
       }
-      const { copied } = await prepareWhatsAppPosterShare({
+      const result = await prepareWhatsAppPosterShare({
         file,
         captionWithLink: payload.captionWithLink,
+        urlCaption: payload.urlCaption,
+        message: payload.message,
       });
-      setInlineHint(
-        copied
-          ? "WhatsApp opened — attach the saved poster if it is not already there"
-          : "WhatsApp opened — paste the link and attach the saved poster"
-      );
+      setInlineHint(shareSuccessHint(result));
       setSheetOpen(false);
     } finally {
       setSharing(false);
@@ -302,8 +305,8 @@ export function RequestShareButton({
   async function handleSheetShareImageAndLink() {
     setSharing(true);
     try {
-      const shared = await runShareImageAndLink();
-      if (shared) setSheetOpen(false);
+      const result = await runShareImageAndLink();
+      if (result?.shared) setSheetOpen(false);
     } catch (err) {
       if (err instanceof Error && err.name !== "AbortError") {
         setInlineHint("Could not share — try WhatsApp or copy & save");
