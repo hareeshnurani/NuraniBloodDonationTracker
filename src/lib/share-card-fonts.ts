@@ -1,8 +1,6 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 
-export const SHARE_CARD_FONT_FAMILY = "Inter";
-
 let cachedFontPaths: string[] | null = null;
 
 function resolveFontPath(fileName: string): string {
@@ -25,15 +23,4 @@ export function getShareCardFontPaths(): string[] {
     resolveFontPath("Inter-Bold.ttf"),
   ];
   return cachedFontPaths;
-}
-
-/** Verify fonts readable at startup of render (clear error if Vercel trace omitted files). */
-export function assertShareCardFontsReady(): void {
-  for (const path of getShareCardFontPaths()) {
-    readFileSync(path);
-  }
-}
-
-export function shareCardFontFamily() {
-  return SHARE_CARD_FONT_FAMILY;
 }
