@@ -26,9 +26,9 @@ function canUseWebShare() {
   return typeof navigator !== "undefined" && typeof navigator.share === "function";
 }
 
-async function loadShareCardBlob(requestId: string): Promise<Blob> {
-  const cardRes = await fetch(`/api/requests/${requestId}/share-card`, {
-    cache: "force-cache",
+async function loadShareCardBlob(requestId: string, attempt = 0): Promise<Blob> {
+  const cardRes = await fetch(`/api/requests/${requestId}/share-card?attempt=${attempt}`, {
+    cache: "no-store",
   });
   if (!cardRes.ok) {
     const detail = await cardRes.text().catch(() => "");
@@ -39,6 +39,19 @@ async function loadShareCardBlob(requestId: string): Promise<Blob> {
     throw new Error("Share image unavailable");
   }
   return blob;
+}
+
+async function loadShareCardBlobWithRetry(requestId: string): Promise<Blob> {
+  let lastError: Error | null = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      return await loadShareCardBlob(requestId, attempt);
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error("Could not load share image");
+      await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
+    }
+  }
+  throw lastError ?? new Error("Could not load share image");
 }
 
 async function invokeNativeShare(opts: {
@@ -78,6 +91,7 @@ function ShareFallbackSheet({
   url,
   message,
   file,
+  cardLoading,
   onNativeShare,
   sharing,
 }: {
@@ -86,6 +100,7 @@ function ShareFallbackSheet({
   url: string;
   message: string;
   file: File | null;
+  cardLoading: boolean;
   onNativeShare: () => void;
   sharing: boolean;
 }) {
@@ -104,7 +119,11 @@ function ShareFallbackSheet({
 
   function downloadImage() {
     if (!file) {
-      setHint("Image still loading — try again in a moment");
+      if (cardLoading) {
+        setHint("Image still loading — try again in a moment");
+        return;
+      }
+      setHint("Image unavailable — use Copy link or open the public share page");
       return;
     }
     const href = URL.createObjectURL(file);
@@ -173,6 +192,7 @@ export function RequestShareButton({
 }) {
   const [sharing, setSharing] = useState(false);
   const [cardFile, setCardFile] = useState<File | null>(null);
+  const [cardLoading, setCardLoading] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [inlineHint, setInlineHint] = useState("");
   const [sheetUrl, setSheetUrl] = useState("");
@@ -181,13 +201,16 @@ export function RequestShareButton({
   const message = shareRequestText(request as ShareableRequest);
 
   const prefetchCard = useCallback(async () => {
+    setCardLoading(true);
     try {
-      const blob = await loadShareCardBlob(request.id);
+      const blob = await loadShareCardBlobWithRetry(request.id);
       setCardFile(
         new File([blob], `bloodlink-${request.id.slice(0, 8)}.png`, { type: "image/png" })
       );
     } catch {
       setCardFile(null);
+    } finally {
+      setCardLoading(false);
     }
   }, [request.id]);
 
@@ -206,7 +229,7 @@ export function RequestShareButton({
     try {
       let file = cardFile;
       if (!file) {
-        const blob = await loadShareCardBlob(request.id);
+        const blob = await loadShareCardBlobWithRetry(request.id);
         file = new File([blob], `bloodlink-${request.id.slice(0, 8)}.png`, { type: "image/png" });
         setCardFile(file);
       }
@@ -310,6 +333,7 @@ export function RequestShareButton({
         url={sheetUrl}
         message={sheetUrl ? `${message}\n${sheetUrl}` : message}
         file={cardFile}
+        cardLoading={cardLoading}
         onNativeShare={handleSheetNativeShare}
         sharing={sharing}
       />
