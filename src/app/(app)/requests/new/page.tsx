@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createBloodRequest } from "@/lib/actions/requests";
+import { requestSubmittedQuery } from "@/lib/request-submitted-query";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -49,7 +50,8 @@ export default function NewRequestPage() {
       setLoading(false);
       return;
     }
-    window.location.href = `/requests/${result.id}`;
+    const qs = result.broadcast ? `?${requestSubmittedQuery(result.broadcast)}` : "";
+    window.location.href = `/requests/${result.id}${qs}`;
   }
 
   return (

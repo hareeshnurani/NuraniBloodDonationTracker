@@ -41,7 +41,25 @@ function isBloodMatch(
   return isPrimary || isReplacement;
 }
 
-export async function broadcastRequest(requestId: string) {
+export type RequestBroadcastStats = {
+  /** Donors who received an in-app (and optional email) notification */
+  notifiedCount: number;
+  /** Notified donors matched within MATCH_RADIUS_KM */
+  withinRadiusNotified: number;
+  /** Notified donors reached via community membership (may overlap radius) */
+  communityNotified: number;
+  /** Matching donors recorded on the request (invitations created) */
+  invitationCount: number;
+};
+
+const EMPTY_BROADCAST: RequestBroadcastStats = {
+  notifiedCount: 0,
+  withinRadiusNotified: 0,
+  communityNotified: 0,
+  invitationCount: 0,
+};
+
+export async function broadcastRequest(requestId: string): Promise<RequestBroadcastStats> {
   const supabase = createServiceClient();
 
   const { data: request } = await supabase
@@ -50,7 +68,7 @@ export async function broadcastRequest(requestId: string) {
     .eq("id", requestId)
     .single();
 
-  if (!request || request.status !== "open") return;
+  if (!request || request.status !== "open") return EMPTY_BROADCAST;
 
   const replacementGroups: BloodGroup[] =
     request.request_replacement_groups?.map((g: { blood_group: BloodGroup }) => g.blood_group) ?? [];
@@ -65,7 +83,7 @@ export async function broadcastRequest(requestId: string) {
     .eq("is_available", true)
     .eq("profiles.status", "active");
 
-  if (!donors) return;
+  if (!donors) return EMPTY_BROADCAST;
 
   let communityMemberIds = new Set<string>();
   if (communityIds.length > 0) {
@@ -126,7 +144,7 @@ export async function broadcastRequest(requestId: string) {
   }
 
   const matches = Array.from(matchMap.values()).sort((a, b) => a.distance_km - b.distance_km);
-  if (matches.length === 0) return;
+  if (matches.length === 0) return EMPTY_BROADCAST;
 
   await supabase.from("donor_invitations").upsert(
     matches.map((m) => ({
@@ -137,6 +155,13 @@ export async function broadcastRequest(requestId: string) {
     })),
     { onConflict: "request_id,donor_id", ignoreDuplicates: true }
   );
+
+  const stats: RequestBroadcastStats = {
+    notifiedCount: 0,
+    withinRadiusNotified: 0,
+    communityNotified: 0,
+    invitationCount: matches.length,
+  };
 
   const priorityLabel = request.priority === "emergency" ? "🚨 Emergency" : "Routine";
   for (const match of matches) {
@@ -153,6 +178,10 @@ export async function broadcastRequest(requestId: string) {
     }
 
     if (!shouldNotify) continue;
+
+    stats.notifiedCount += 1;
+    if (match.viaGeneric) stats.withinRadiusNotified += 1;
+    if (match.viaCommunity) stats.communityNotified += 1;
 
     const replacementNote = match.is_replacement_match
       ? ` (Replacement donor — primary need: ${request.primary_blood_group})`
@@ -175,6 +204,8 @@ export async function broadcastRequest(requestId: string) {
       }
     );
   }
+
+  return stats;
 }
 
 export async function createBloodRequest(formData: FormData) {
@@ -294,13 +325,14 @@ export async function createBloodRequest(formData: FormData) {
 
   await logAudit(profile.id, "request_created", "blood_request", request.id);
 
+  let broadcast: RequestBroadcastStats | undefined;
   if (publish) {
-    await broadcastRequest(request.id);
+    broadcast = await broadcastRequest(request.id);
   }
 
   revalidatePath("/home");
   revalidatePath("/requests");
-  return { success: true, id: request.id };
+  return { success: true, id: request.id, broadcast };
 }
 
 export async function publishBloodRequest(requestId: string) {
@@ -317,9 +349,9 @@ export async function publishBloodRequest(requestId: string) {
 
   if (error) return { error: error.message };
 
-  await broadcastRequest(requestId);
+  const broadcast = await broadcastRequest(requestId);
   revalidatePath(`/requests/${requestId}`);
-  return { success: true };
+  return { success: true, broadcast };
 }
 
 export async function closeBloodRequest(requestId: string, reason: string) {
