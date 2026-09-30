@@ -2,7 +2,7 @@
 
 Run each block in the Supabase **SQL Editor** (Dashboard → SQL → New query) if that migration is not already applied.
 
-See also numbered files under `supabase/migrations/` (001–012).
+See also numbered files under `supabase/migrations/` (001–013).
 
 ## 011 — Use my location (GPS every 3 hours, PIN 3 days)
 

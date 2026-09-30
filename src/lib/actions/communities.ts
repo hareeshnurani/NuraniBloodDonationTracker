@@ -40,16 +40,25 @@ export async function createCommunity(formData: FormData) {
     .select()
     .single();
 
-  if (error) return { error: error.message };
+  if (error) {
+    const msg = error.message ?? "";
+    if (msg.includes("row-level security") && visibility === "private") {
+      return {
+        error:
+          "Could not create private community (permissions). If this keeps happening, ask an admin to apply database migration 013_private_community_creator_select.sql.",
+      };
+    }
+    return { error: error.message };
+  }
 
-  const service = createServiceClient();
-  const { error: memberError } = await service.from("community_members").insert({
+  const { error: memberError } = await supabase.from("community_members").insert({
     community_id: community.id,
     user_id: profile.id,
     is_admin: true,
   });
 
   if (memberError) {
+    const service = createServiceClient();
     await service.from("communities").delete().eq("id", community.id);
     return {
       error:
