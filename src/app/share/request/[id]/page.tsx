@@ -27,9 +27,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title: `Blood needed — ${req.primary_blood_group} · BloodLink`,
     description: `${req.patient_name} needs blood. ${PRIORITY_LABELS[req.priority] ?? req.priority} priority.`,
     openGraph: {
+      type: "website",
+      url: `${origin}/share/request/${id}`,
       title: `Blood needed — ${req.primary_blood_group}`,
       description: `Help ${req.patient_name} on BloodLink`,
-      images: [{ url: imageUrl, width: SHARE_CARD_WIDTH, height: SHARE_CARD_HEIGHT }],
+      images: [{ url: imageUrl, width: SHARE_CARD_WIDTH, height: SHARE_CARD_HEIGHT, alt: "Blood donation appeal" }],
     },
     twitter: {
       card: "summary_large_image",
