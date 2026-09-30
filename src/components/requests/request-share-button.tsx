@@ -8,6 +8,7 @@ import {
   canUseWebShare,
   copyShareText,
   downloadShareFile,
+  getChromeShareTip,
   sharePosterWithLink,
   sharePosterWithLinkOnWhatsApp,
   shareSuccessHint,
@@ -202,6 +203,7 @@ export function RequestShareButton({
     () => buildSharePosterPayload(request as ShareableRequest, getAppUrl()),
     [request]
   );
+  const chromeTip = getChromeShareTip();
 
   const prefetchCard = useCallback(async () => {
     setCardLoading(true);
@@ -344,6 +346,11 @@ export function RequestShareButton({
               {inlineHint}
             </span>
           )}
+          {!inlineHint && chromeTip && (
+            <span className="mt-1 max-w-[9rem] text-center text-[9px] leading-snug text-[var(--label-tertiary)]">
+              {chromeTip}
+            </span>
+          )}
         </div>
       ) : (
         <div className={cn("flex flex-col gap-1", className)}>
@@ -362,6 +369,9 @@ export function RequestShareButton({
             {cardLoading ? "Loading poster…" : sharing ? "Sharing…" : "Share poster + link"}
           </button>
           {inlineHint && <p className="text-[12px] text-[var(--label-secondary)]">{inlineHint}</p>}
+          {!inlineHint && chromeTip && (
+            <p className="text-[11px] leading-snug text-[var(--label-tertiary)]">{chromeTip}</p>
+          )}
         </div>
       )}
 
