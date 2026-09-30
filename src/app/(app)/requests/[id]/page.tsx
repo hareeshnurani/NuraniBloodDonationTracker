@@ -6,9 +6,14 @@ import { createClient } from "@/lib/supabase/server";
 import { checkDeadlineWarnings } from "@/lib/actions/requests";
 import { Card, Badge } from "@/components/ui/card";
 import { RequestActions } from "@/components/requests/request-actions";
-import { ActiveRequestActions } from "@/components/donor/active-request-actions";
+import { DonorRequestActions } from "@/components/donor/donor-request-actions";
 import { REQUEST_STATUS_LABELS, PRIORITY_LABELS } from "@/lib/constants";
 import { shouldPromptDeadlineExtension } from "@/lib/utils";
+import {
+  canDonorRespondToRequest,
+  distanceKmToRequest,
+} from "@/lib/donor-request-response";
+import type { BloodGroup } from "@/lib/constants";
 import { RequestShareButton } from "@/components/requests/request-share-button";
 
 export default async function RequestDetailPage({
@@ -36,19 +41,30 @@ export default async function RequestDetailPage({
 
   const { data: myInvite } = await supabase
     .from("donor_invitations")
-    .select("id, response, is_confirmed")
+    .select("id, response, is_confirmed, distance_km")
     .eq("request_id", id)
     .eq("donor_id", profile.id)
     .maybeSingle();
 
   const donorProfile =
     !isOwner && !isAdmin ? await getDonorProfile(profile.id) : null;
-  const showDonorRespond =
+
+  const requestLike = {
+    ...request,
+    primary_blood_group: request.primary_blood_group as BloodGroup,
+    request_replacement_groups: request.request_replacement_groups?.map(
+      (g: { blood_group: BloodGroup }) => g
+    ),
+  };
+
+  const showDonorSection =
     !isOwner &&
     !isAdmin &&
-    isOpen &&
-    request.units_filled < request.units_needed &&
-    !!donorProfile?.willing_to_donate;
+    donorProfile &&
+    (canDonorRespondToRequest(profile, donorProfile, requestLike) || !!myInvite);
+
+  const donorDistanceKm =
+    myInvite?.distance_km ?? distanceKmToRequest(profile, requestLike);
 
   const { data: invitations } =
     isOwner || isAdmin
@@ -156,30 +172,22 @@ export default async function RequestDetailPage({
         )}
       </Card>
 
-      {!isOwner && !isAdmin && myInvite && (
-        <Card>
-          <h2 className="font-semibold text-gray-900">Your invitation</h2>
-          <p className="mt-2 text-sm text-gray-600">
-            You have been matched to this request.
-          </p>
-          <Link
-            href={`/donor/invites/${myInvite.id}`}
-            className="mt-3 inline-block text-sm font-medium text-red-600 hover:underline"
-          >
-            Open invite →
-          </Link>
-        </Card>
-      )}
-
-      {showDonorRespond && !myInvite && (
+      {!isOwner && !isAdmin && showDonorSection && (
         <Card>
           <h2 className="font-semibold text-gray-900">Respond as donor</h2>
           <p className="mt-1 text-sm text-gray-600">
-            Turn on availability on Home if accept fails. You will confirm distance before accepting
-            requests far from you.
+            Decline, chat with the requester, or accept to confirm you can donate. Turn on
+            availability in Profile if a button fails.
           </p>
           <div className="mt-4">
-            <ActiveRequestActions requestId={id} />
+            <DonorRequestActions
+              requestId={id}
+              invitationId={myInvite?.id ?? null}
+              distanceKm={donorDistanceKm}
+              inviteResponse={myInvite?.response}
+              isConfirmed={myInvite?.is_confirmed}
+              compact
+            />
           </div>
         </Card>
       )}

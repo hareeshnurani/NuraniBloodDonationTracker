@@ -6,28 +6,43 @@ import {
   acceptInvitation,
   rejectInvitation,
   ensureDonorChatThread,
+  ensureDonorInvitation,
 } from "@/lib/actions/requests";
 import { Button } from "@/components/ui/button";
 import { MATCH_RADIUS_KM } from "@/lib/constants";
 import { MessageCircle, X, Check } from "lucide-react";
 
 export function InviteCardActions({
-  invitationId,
+  invitationId: initialInvitationId,
   requestId,
-  distanceKm,
+  distanceKm: initialDistanceKm,
   compact = false,
 }: {
-  invitationId: string;
+  invitationId: string | null;
   requestId: string;
   distanceKm: number;
   compact?: boolean;
 }) {
   const router = useRouter();
+  const [invitationId, setInvitationId] = useState(initialInvitationId);
+  const [distanceKm, setDistanceKm] = useState(initialDistanceKm);
   const [loading, setLoading] = useState<"accept" | "reject" | "chat" | null>(null);
   const [error, setError] = useState("");
   const [showDistanceConfirm, setShowDistanceConfirm] = useState(false);
 
   const isFarAway = distanceKm > MATCH_RADIUS_KM;
+
+  async function resolveInvitationId() {
+    if (invitationId) return invitationId;
+    const ensured = await ensureDonorInvitation(requestId);
+    if (ensured.error || !ensured.invitationId) {
+      setError(ensured.error ?? "Could not respond to this request");
+      return null;
+    }
+    setInvitationId(ensured.invitationId);
+    setDistanceKm(ensured.distance_km ?? distanceKm);
+    return ensured.invitationId;
+  }
 
   async function handleAccept(skipConfirm = false) {
     if (isFarAway && !skipConfirm) {
@@ -36,20 +51,32 @@ export function InviteCardActions({
     }
     setLoading("accept");
     setError("");
-    const result = await acceptInvitation(invitationId);
+    const id = await resolveInvitationId();
+    if (!id) {
+      setLoading(null);
+      return;
+    }
+    const result = await acceptInvitation(id);
     if (result.error) {
       setError(result.error);
       setLoading(null);
       return;
     }
     router.refresh();
-    router.push(`/donor/invites/${invitationId}`);
+    router.push(`/donor/invites/${id}`);
   }
 
   async function handleReject() {
     setLoading("reject");
-    await rejectInvitation(invitationId);
+    setError("");
+    const id = await resolveInvitationId();
+    if (!id) {
+      setLoading(null);
+      return;
+    }
+    await rejectInvitation(id);
     router.refresh();
+    setLoading(null);
   }
 
   async function handleChat() {
@@ -118,7 +145,7 @@ export function InviteCardActions({
           {loading === "accept" ? "…" : "Accept"}
         </Button>
       </div>
-      {error && <p className="text-[12px] text-red-600">{error}</p>}
+      {error && <p className="text-[12px] text-[var(--accent)]">{error}</p>}
     </div>
   );
 }

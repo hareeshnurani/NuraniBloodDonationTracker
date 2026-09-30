@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { GroupedRowIcon } from "@/components/ui/grouped-list";
 import { Badge } from "@/components/ui/card";
+import { DonorRequestActions } from "@/components/donor/donor-request-actions";
 import { RequestShareButton } from "@/components/requests/request-share-button";
 import { PRIORITY_LABELS } from "@/lib/constants";
 import { Droplets } from "lucide-react";
@@ -21,9 +22,23 @@ export type CommunityRequestRowData = {
   pincode?: string | null;
 };
 
-export function CommunityRequestRow({ request }: { request: CommunityRequestRowData }) {
+export type CommunityRequestDonorActions = {
+  invitationId: string | null;
+  distanceKm: number;
+  inviteResponse?: string | null;
+  isConfirmed?: boolean;
+};
+
+export function CommunityRequestRow({
+  request,
+  donorActions,
+}: {
+  request: CommunityRequestRowData;
+  donorActions?: CommunityRequestDonorActions;
+}) {
   return (
-    <div className="flex items-center gap-1 border-b border-[var(--separator)] last:border-b-0">
+    <div className="border-b border-[var(--separator)] last:border-b-0">
+    <div className="flex items-center gap-1">
       <Link
         href={`/requests/${request.id}`}
         className="flex min-h-[52px] min-w-0 flex-1 items-center gap-3 px-4 py-4 transition-colors hover:bg-[var(--surface-secondary)] active:bg-[#ebebf0]"
@@ -65,6 +80,20 @@ export function CommunityRequestRow({ request }: { request: CommunityRequestRowD
           }}
         />
       </div>
+    </div>
+    {donorActions && (
+      <div className="border-t border-[var(--separator)] bg-[var(--surface-secondary)]/40 px-4 py-3">
+        <DonorRequestActions
+          requestId={request.id}
+          invitationId={donorActions.invitationId}
+          distanceKm={donorActions.distanceKm}
+          inviteResponse={donorActions.inviteResponse}
+          isConfirmed={donorActions.isConfirmed}
+          compact
+          showDetailsLink
+        />
+      </div>
+    )}
     </div>
   );
 }

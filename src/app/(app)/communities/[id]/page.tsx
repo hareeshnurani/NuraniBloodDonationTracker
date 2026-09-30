@@ -1,9 +1,12 @@
 import { notFound } from "next/navigation";
-import { requireActiveProfile } from "@/lib/auth";
+import { requireActiveProfile, getDonorProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/components/ui/page-header";
 import { GroupedSection } from "@/components/ui/grouped-list";
-import { CommunityRequestRow } from "@/components/communities/community-request-row";
+import {
+  CommunityRequestRow,
+  type CommunityRequestRowData,
+} from "@/components/communities/community-request-row";
 import { CommunityDetailHeader } from "@/components/communities/community-detail-header";
 import { CommunityAdminCollapsible } from "@/components/communities/community-admin-collapsible";
 import {
@@ -11,6 +14,11 @@ import {
   CommunityMembersEntry,
 } from "@/components/communities/community-bottom-actions";
 import { Droplets } from "lucide-react";
+import type { BloodGroup } from "@/lib/constants";
+import {
+  canDonorRespondToRequest,
+  distanceKmToRequest,
+} from "@/lib/donor-request-response";
 
 export default async function CommunityDetailPage({
   params,
@@ -51,7 +59,7 @@ export default async function CommunityDetailPage({
     supabase
       .from("request_communities")
       .select(
-        "request_id, blood_requests(id, status, patient_name, primary_blood_group, priority, units_filled, units_needed, deadline, hospital_notes, location_district, location_state, pincode)"
+        "request_id, blood_requests(id, status, requester_id, patient_name, primary_blood_group, priority, units_filled, units_needed, deadline, accepts_replacement, latitude, longitude, hospital_notes, location_district, location_state, pincode, request_replacement_groups(blood_group))"
       )
       .eq("community_id", id)
       .order("created_at", { ascending: false })
@@ -62,26 +70,45 @@ export default async function CommunityDetailPage({
     console.error("community requests load failed", requestsError.message);
   }
 
-  const activeRequests =
+  type ActiveRequest = CommunityRequestRowData & {
+    requester_id: string;
+    accepts_replacement: boolean;
+    latitude: number;
+    longitude: number;
+    request_replacement_groups?: { blood_group: string }[];
+  };
+
+  const activeRequests: ActiveRequest[] =
     requestLinks
-      ?.map(
-        (rl) =>
-          rl.blood_requests as unknown as {
-            id: string;
-            status: string;
-            patient_name: string;
-            primary_blood_group: string;
-            priority: string;
-            units_filled: number;
-            units_needed: number;
-            deadline: string;
-            hospital_notes: string | null;
-            location_district: string | null;
-            location_state: string | null;
-            pincode: string | null;
-          } | null
-      )
-      .filter((r) => r && ["open", "partially_filled"].includes(r.status)) ?? [];
+      ?.map((rl) => rl.blood_requests as unknown as ActiveRequest | null)
+      .filter(
+        (r): r is ActiveRequest =>
+          !!r && ["open", "partially_filled"].includes(r.status)
+      ) ?? [];
+
+  const donorProfile = await getDonorProfile(profile.id);
+  const requestIds = activeRequests.map((r) => r.id);
+  const inviteByRequest = new Map<
+    string,
+    { id: string; response: string; is_confirmed: boolean; distance_km: number }
+  >();
+
+  if (requestIds.length > 0) {
+    const { data: invites } = await supabase
+      .from("donor_invitations")
+      .select("id, request_id, response, is_confirmed, distance_km")
+      .eq("donor_id", profile.id)
+      .in("request_id", requestIds);
+
+    for (const inv of invites ?? []) {
+      inviteByRequest.set(inv.request_id, {
+        id: inv.id,
+        response: inv.response,
+        is_confirmed: inv.is_confirmed,
+        distance_km: inv.distance_km,
+      });
+    }
+  }
 
   const { data: pin } = isMember
     ? await supabase
@@ -112,9 +139,41 @@ export default async function CommunityDetailPage({
         </p>
         {activeRequests.length > 0 ? (
           <GroupedSection>
-            {activeRequests.map((r) => (
-              <CommunityRequestRow key={r!.id} request={r!} />
-            ))}
+            {activeRequests.map((req) => {
+              const invite = inviteByRequest.get(req.id);
+              const requestLike = {
+                ...req,
+                primary_blood_group: req.primary_blood_group as BloodGroup,
+                request_replacement_groups: req.request_replacement_groups?.map((g) => ({
+                  blood_group: g.blood_group as BloodGroup,
+                })),
+              };
+              const showDonorActions =
+                invite?.response !== "rejected" &&
+                (canDonorRespondToRequest(profile, donorProfile, requestLike) ||
+                  invite?.response === "pending" ||
+                  invite?.is_confirmed ||
+                  invite?.response === "accepted");
+              const distanceKm =
+                invite?.distance_km ?? distanceKmToRequest(profile, requestLike);
+
+              return (
+                <CommunityRequestRow
+                  key={req.id}
+                  request={req}
+                  donorActions={
+                    showDonorActions
+                      ? {
+                          invitationId: invite?.id ?? null,
+                          distanceKm,
+                          inviteResponse: invite?.response,
+                          isConfirmed: invite?.is_confirmed,
+                        }
+                      : undefined
+                  }
+                />
+              );
+            })}
           </GroupedSection>
         ) : (
           <EmptyState
