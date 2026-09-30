@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { ShareableRequest } from "@/lib/request-share";
-import { buildSharePosterPayload } from "@/lib/share-native";
+import {
+  buildImageFileShareAttempts,
+  buildSharePosterPayload,
+} from "@/lib/share-native";
 
 const mockReq: ShareableRequest = {
   id: "2a6f8bbc-4ae2-4a30-b537-086f30671f33",
@@ -29,5 +32,14 @@ describe("buildSharePosterPayload", () => {
     expect(payload.captionWithLink).toContain(payload.url);
     expect(payload.captionWithLink).toContain("O+");
     expect(payload.captionWithLink).toContain("Tap the link");
+    expect(payload.imageDescription.startsWith(payload.url)).toBe(true);
+  });
+
+  it("prefers URL-first text for image file share attempts", () => {
+    const payload = buildSharePosterPayload(mockReq, "https://example.com");
+    const file = new File(["x"], "bloodlink.png", { type: "image/png" });
+    const attempts = buildImageFileShareAttempts(file, payload);
+    expect(attempts[0].text).toBe(payload.url);
+    expect(attempts.some((a) => a.text === payload.imageDescription)).toBe(true);
   });
 });
