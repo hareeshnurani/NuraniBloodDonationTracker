@@ -82,8 +82,10 @@ function ShareFallbackSheet({
 
   if (!open || !payload) return null;
 
+  const { captionWithLink, url } = payload;
+
   async function copyAll() {
-    const ok = await copyShareText(payload.captionWithLink);
+    const ok = await copyShareText(captionWithLink);
     setHint(ok ? "Copied poster text and link" : "Could not copy — use the link below");
   }
 
@@ -105,7 +107,7 @@ function ShareFallbackSheet({
       await copyAll();
       return;
     }
-    const ok = await copyShareText(payload.captionWithLink);
+    const ok = await copyShareText(captionWithLink);
     downloadShareFile(file);
     setHint(
       ok
@@ -169,7 +171,7 @@ function ShareFallbackSheet({
           </Button>
         </div>
         {hint && <p className="mt-3 text-[13px] text-[var(--success)]">{hint}</p>}
-        <p className="mt-3 break-all text-[11px] text-[var(--label-tertiary)]">{payload.url}</p>
+        <p className="mt-3 break-all text-[11px] text-[var(--label-tertiary)]">{url}</p>
       </div>
     </div>
   );
