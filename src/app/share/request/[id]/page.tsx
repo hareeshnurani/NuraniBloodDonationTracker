@@ -5,9 +5,15 @@ import { format } from "date-fns";
 import { formatShareLocation, getShareableRequest } from "@/lib/request-share";
 import { PRIORITY_LABELS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
+import { ShareRequestCardImage } from "@/components/requests/share-request-card-image";
 import { Droplets } from "lucide-react";
+import { SHARE_CARD_HEIGHT, SHARE_CARD_WIDTH } from "@/lib/share-card-element";
 
 type PageProps = { params: Promise<{ id: string }> };
+
+function appOrigin() {
+  return process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "https://bloodlink.app";
+}
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id } = await params;
@@ -15,14 +21,21 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (!req) {
     return { title: "Request not found · BloodLink" };
   }
-  const origin = process.env.NEXT_PUBLIC_APP_URL ?? "https://bloodlink.app";
+  const origin = appOrigin();
+  const imageUrl = `${origin}/api/requests/${id}/share-card`;
   return {
     title: `Blood needed — ${req.primary_blood_group} · BloodLink`,
     description: `${req.patient_name} needs blood. ${PRIORITY_LABELS[req.priority] ?? req.priority} priority.`,
     openGraph: {
       title: `Blood needed — ${req.primary_blood_group}`,
       description: `Help ${req.patient_name} on BloodLink`,
-      images: [{ url: `${origin}/api/requests/${id}/share-card`, width: 1080, height: 1920 }],
+      images: [{ url: imageUrl, width: SHARE_CARD_WIDTH, height: SHARE_CARD_HEIGHT }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `Blood needed — ${req.primary_blood_group}`,
+      description: `Help ${req.patient_name} on BloodLink`,
+      images: [imageUrl],
     },
   };
 }
@@ -46,14 +59,7 @@ export default async function PublicShareRequestPage({ params }: PageProps) {
         <h1 className="text-[28px] font-bold tracking-tight text-[var(--label)]">
           Blood donation appeal
         </h1>
-        <div className="overflow-hidden rounded-[var(--radius-xl)] border border-[var(--separator)] bg-[var(--surface)] shadow-[var(--shadow-md)]">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={`/api/requests/${id}/share-card`}
-            alt={`Blood request for ${req.patient_name}`}
-            className="w-full"
-          />
-        </div>
+        <ShareRequestCardImage requestId={id} alt={`Blood request for ${req.patient_name}`} />
         <div className="rounded-[var(--radius-lg)] bg-[var(--surface)] p-5 text-left shadow-[var(--shadow-sm)]">
           <p className="text-[13px] font-medium uppercase tracking-wide text-[var(--label-secondary)]">
             Summary
