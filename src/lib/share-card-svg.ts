@@ -26,10 +26,9 @@ function sanitizeText(value: string, maxLen: number) {
   return ascii.length <= maxLen ? ascii : `${ascii.slice(0, maxLen - 3)}...`;
 }
 
-/** SVG appeal card (no Satori) — rasterized to PNG in the API route. */
-export function buildShareCardSvg(req: ShareableRequest, fontStyle: string) {
-  const font = shareCardFontFamily();
-  const ff = `'${font}', sans-serif`;
+/** SVG appeal card — rasterized with resvg-js and bundled Inter TTFs. */
+export function buildShareCardSvg(req: ShareableRequest) {
+  const ff = shareCardFontFamily();
   const w = SHARE_CARD_WIDTH;
   const h = SHARE_CARD_HEIGHT;
   const unitsLeft = Math.max(0, req.units_needed - req.units_filled);
@@ -55,7 +54,6 @@ export function buildShareCardSvg(req: ShareableRequest, fontStyle: string) {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
   <defs>
-    ${fontStyle}
     <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#1a1a1e"/>
       <stop offset="42%" stop-color="#2c2c2e"/>
