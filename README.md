@@ -78,10 +78,11 @@ Open [http://localhost:3000](http://localhost:3000).
 ## Deploy to Vercel
 
 1. Push to GitHub
-2. Import project in Vercel
+2. Import project in Vercel (or use the existing project)
 3. Add the same environment variables
-4. Set `NEXT_PUBLIC_APP_URL` to your production URL
-5. Add the production URL to Supabase **Authentication → URL Configuration → Redirect URLs**
+4. Set **`NEXT_PUBLIC_APP_URL`** and **`BLOODLINK_APP_URL`** to **`https://nsbloodlink.in`**
+5. Connect custom domain **`nsbloodlink.in`** in Vercel → Settings → Domains (see **[docs/CUSTOM_DOMAIN_NSBLOODLINK_IN.md](docs/CUSTOM_DOMAIN_NSBLOODLINK_IN.md)**)
+6. Add **`https://nsbloodlink.in/auth/callback`** to Supabase **Authentication → URL Configuration → Redirect URLs**
 
 ## Workflow summary
 
