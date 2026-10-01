@@ -34,19 +34,19 @@ export async function registerUser(
   }
 
   if (process.env.BLOODLINK_USE_EMAIL_CONFIRMATION === "true") {
+    console.error("[registerUser] BLOODLINK_USE_EMAIL_CONFIRMATION is enabled but signup expects admin createUser");
     return {
       ok: false,
-      error:
-        "Email verification is enabled in server config. Configure SMTP in Supabase or unset BLOODLINK_USE_EMAIL_CONFIRMATION.",
+      error: "Sign-up is temporarily unavailable. Please try again later.",
     };
   }
 
   const admin = createServiceClient();
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()) {
+    console.error("[registerUser] SUPABASE_SERVICE_ROLE_KEY is missing");
     return {
       ok: false,
-      error:
-        "Server configuration error: SUPABASE_SERVICE_ROLE_KEY is missing. Add it in Vercel environment variables and redeploy.",
+      error: "Sign-up is temporarily unavailable. Please try again later.",
     };
   }
 

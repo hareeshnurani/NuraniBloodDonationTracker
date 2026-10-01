@@ -1,3 +1,5 @@
+import { SUPPORT_EMAIL } from "@/lib/constants";
+
 export default function DisclaimerPage() {
   return (
     <>
@@ -22,7 +24,13 @@ export default function DisclaimerPage() {
       <h2>Facility listings</h2>
       <p>
         Hospital names in the app are for coordination convenience. Verify availability with the facility directly.
-        Report incorrect listings through Profile or support channels.
+        Report incorrect listings from Profile or email{" "}
+        <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>.
+      </p>
+      <h2>Contact</h2>
+      <p>
+        Questions about this disclaimer or how BloodLink works? Email{" "}
+        <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>.
       </p>
     </>
   );

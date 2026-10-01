@@ -28,7 +28,7 @@ export default function JoinByCodePage() {
     return (
       <div className="flex flex-col items-center justify-center py-20">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
-        <p className="mt-4 text-[15px] text-[var(--label-secondary)]">Joining community...</p>
+        <p className="mt-4 text-[15px] text-[var(--label-secondary)]">Joining group…</p>
       </div>
     );
   }
@@ -37,7 +37,7 @@ export default function JoinByCodePage() {
     <div className="mx-auto max-w-md text-center py-20">
       <PageHeader title="Could not join" subtitle={error} />
       <a href="/communities" className="text-[var(--accent)] hover:underline">
-        Go to communities
+        Go to groups
       </a>
     </div>
   );

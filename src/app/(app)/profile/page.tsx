@@ -214,7 +214,7 @@ export default function ProfilePage() {
               checked={donor.notify_community_only ?? false}
               onChange={handleNotifyPreference}
               label="Community-only notifications"
-              description="Only get notified for requests in your communities. Emergency broadcasts outside your groups will not alert you when this is on—you can still open Donate and accept any matching request."
+              description="Only get notified for requests in your groups. Emergency alerts outside your groups won't notify you when this is on—you can still open Donate and accept any matching request."
             />
           </div>
         </GroupedSection>

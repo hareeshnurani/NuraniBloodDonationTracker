@@ -12,7 +12,7 @@ import { Droplets } from "lucide-react";
 type PageProps = { params: Promise<{ id: string }> };
 
 function appOrigin() {
-  return process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "https://bloodlink.app";
+  return process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "https://nsbloodlink.in";
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {

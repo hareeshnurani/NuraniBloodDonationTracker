@@ -9,7 +9,7 @@ const features = [
     bg: "bg-[var(--accent-soft)]",
     title: "GPS matching",
     description:
-      "All eligible donors within 50 km are notified automatically when you publish a request.",
+      "Matching donors within 50 km can be notified when you publish a request (based on availability and settings).",
   },
   {
     icon: Shield,
@@ -48,7 +48,7 @@ export default function LandingPage() {
           </div>
           <div className="flex items-center gap-2">
             <Link href="/login">
-              <Button variant="ghost" size="sm">Log in</Button>
+              <Button variant="ghost" size="sm">Sign in</Button>
             </Link>
             <Link href="/signup">
               <Button size="sm">Sign up</Button>
@@ -76,7 +76,7 @@ export default function LandingPage() {
               <Button size="lg" className="min-w-[180px]">Get started</Button>
             </Link>
             <Link href="/login">
-              <Button size="lg" variant="secondary" className="min-w-[180px]">Log in</Button>
+              <Button size="lg" variant="secondary" className="min-w-[180px]">Sign in</Button>
             </Link>
           </div>
         </section>

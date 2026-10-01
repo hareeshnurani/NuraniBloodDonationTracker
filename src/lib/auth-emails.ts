@@ -18,7 +18,7 @@ export async function sendWelcomeEmail(email: string, name: string) {
       "",
       `Sign in anytime: ${loginUrl}`,
       "",
-      "If you forget your password, reset it here:",
+      "If you forgot your password, reset it here:",
       resetUrl,
       "",
       "Thank you for helping connect blood donors with those in need.",

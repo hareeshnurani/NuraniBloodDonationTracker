@@ -76,7 +76,7 @@ export default function OnboardingPage() {
           </div>
           <h1 className="text-[28px] font-bold tracking-tight text-[var(--label)]">Complete your profile</h1>
           <p className="mt-1.5 text-[15px] text-[var(--label-secondary)]">
-            Add your name and location so we can show relevant requests and communities. Donor details are optional.
+            Add your name and location so we can show relevant requests and groups. Donor details are optional.
           </p>
         </div>
 

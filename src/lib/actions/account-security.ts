@@ -54,6 +54,6 @@ export async function updateAccountEmail(newEmail: string) {
   return {
     success: true,
     message:
-      "We sent a confirmation link to your new email address. Your login email updates after you confirm.",
+      "We sent a confirmation link to your new email address. The email you use to sign in updates after you confirm.",
   };
 }

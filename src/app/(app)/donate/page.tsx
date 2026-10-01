@@ -69,7 +69,7 @@ export default async function DonatePage() {
     <div className="space-y-10">
       <PageHeader
         title="Donate"
-        subtitle="Public wall — every active request that matches your blood group, not limited to your communities."
+        subtitle="Public wall — every active request that matches your blood group, not limited to your groups."
       />
 
       {!locationState.available && (

@@ -2,9 +2,9 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "BloodLink — Blood Donation Request Management",
+  title: "BloodLink — Blood donation request management",
   description:
-    "Professional blood donation request management with GPS matching and secure in-app coordination.",
+    "Raise blood requests, get matched with nearby donors, and coordinate safely in one app.",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",

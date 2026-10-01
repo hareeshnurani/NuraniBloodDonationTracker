@@ -31,7 +31,7 @@ const SLIDES = [
     id: "flow",
     title: "How it works",
     subtitle:
-      "From signup to donation, each step is designed to be clear. You can post requests, join groups, or respond when someone nearby needs help.",
+      "From signup to donation, each step is clear. You can post requests, join groups, or respond when someone nearby needs help.",
     visual: "flow" as const,
   },
   {

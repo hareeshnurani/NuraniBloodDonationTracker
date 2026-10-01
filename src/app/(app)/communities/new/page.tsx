@@ -29,17 +29,17 @@ export default function NewCommunityPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <Link href="/communities" className="text-sm text-[var(--accent)] hover:underline">
-        ← Back to communities
+        ← Back to groups
       </Link>
       <PageHeader
-        title="Create Community"
+        title="Create group"
         subtitle="Build a group for your organization, college, or neighborhood"
       />
 
       <Card>
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <Label htmlFor="name">Community name</Label>
+            <Label htmlFor="name">Group name</Label>
             <Input id="name" name="name" placeholder="e.g. Palakkad Blood Donors" required />
           </div>
 
@@ -49,7 +49,7 @@ export default function NewCommunityPage() {
               id="description"
               name="description"
               rows={3}
-              placeholder="What is this community about?"
+              placeholder="What is this group about?"
             />
           </div>
 
@@ -60,7 +60,7 @@ export default function NewCommunityPage() {
               <option value="private">Private — invite only</option>
             </Select>
             <p className="mt-1.5 text-[13px] text-[var(--label-secondary)]">
-              Private communities require an invite link or admin approval to join.
+              Private groups are join-by-invite only.
             </p>
           </div>
 
@@ -71,7 +71,7 @@ export default function NewCommunityPage() {
           )}
 
           <Button type="submit" disabled={loading} className="w-full">
-            {loading ? "Creating..." : "Create community"}
+            {loading ? "Creating..." : "Create group"}
           </Button>
         </form>
       </Card>

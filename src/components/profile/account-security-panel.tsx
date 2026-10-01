@@ -50,7 +50,7 @@ export function AccountSecurityPanel({ currentEmail }: { currentEmail: string })
   return (
     <GroupedSection
       title="Sign-in & security"
-      footer="Use Forgot password on the login page if you are locked out."
+      footer="Use Forgot password on the sign-in page if you are locked out."
     >
       <div className="space-y-6 p-4">
         <form onSubmit={handlePassword} className="space-y-3 border-b border-[var(--separator)] pb-6">
