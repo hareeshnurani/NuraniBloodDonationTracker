@@ -48,7 +48,7 @@ export default function LandingPage() {
           </div>
           <div className="flex items-center gap-2">
             <Link href="/login">
-              <Button variant="ghost" size="sm">Log in</Button>
+              <Button variant="ghost" size="sm">Sign in</Button>
             </Link>
             <Link href="/signup">
               <Button size="sm">Sign up</Button>
@@ -76,7 +76,7 @@ export default function LandingPage() {
               <Button size="lg" className="min-w-[180px]">Get started</Button>
             </Link>
             <Link href="/login">
-              <Button size="lg" variant="secondary" className="min-w-[180px]">Log in</Button>
+              <Button size="lg" variant="secondary" className="min-w-[180px]">Sign in</Button>
             </Link>
           </div>
         </section>

@@ -51,7 +51,7 @@ export default function VerifyEmailPage() {
             {loading ? "Sending…" : "Resend verification email"}
           </Button>
           <Link href="/login" className="text-[15px] font-medium text-[var(--accent)] hover:underline">
-            Back to login
+            Back to sign in
           </Link>
         </div>
       </div>
