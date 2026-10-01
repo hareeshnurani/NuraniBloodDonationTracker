@@ -139,7 +139,7 @@ export default function NewRequestPage() {
           </div>
 
           <div>
-            <Label>Share with communities (optional)</Label>
+            <Label>Share with groups (optional)</Label>
             <div className="mt-2">
               <CommunitySelector selected={selectedCommunities} onChange={setSelectedCommunities} />
             </div>

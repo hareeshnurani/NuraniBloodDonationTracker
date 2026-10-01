@@ -1,3 +1,5 @@
+import { SUPPORT_EMAIL } from "@/lib/constants";
+
 export default function TermsPage() {
   return (
     <>
@@ -35,7 +37,10 @@ export default function TermsPage() {
         care or third-party actions.
       </p>
       <h2>Contact</h2>
-      <p>For support, use the contact details provided in your pilot or deployment documentation.</p>
+      <p>
+        For support with BloodLink, email{" "}
+        <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>.
+      </p>
     </>
   );
 }

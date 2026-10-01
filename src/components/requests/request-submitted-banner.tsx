@@ -31,7 +31,7 @@ export function RequestSubmittedBanner({
   }
   if (communityNotified > 0) {
     detailParts.push(
-      `${communityNotified} community member${communityNotified !== 1 ? "s" : ""} in your groups`
+      `${communityNotified} group member${communityNotified !== 1 ? "s" : ""}`
     );
   }
 
@@ -51,7 +51,7 @@ export function RequestSubmittedBanner({
       {notified > 0 ? (
         <>
           <p className="text-[15px] font-semibold text-[var(--label)]">
-            Your request has been submitted to {notified} user{notified !== 1 ? "s" : ""}.
+            Your request has been submitted to {notified} matching donor{notified !== 1 ? "s" : ""}.
             Let&apos;s wait for their response.
           </p>
           {detailParts.length > 0 && (
@@ -67,7 +67,7 @@ export function RequestSubmittedBanner({
           </p>
           <p className="mt-1.5 text-[13px] leading-relaxed text-[var(--label-secondary)]">
             No matching available donors were found within {MATCH_RADIUS_KM} km or in your
-            communities yet. Share the appeal link to reach more people.
+            groups yet. Share the appeal link to reach more people.
           </p>
         </>
       )}

@@ -225,7 +225,8 @@ export async function setVerifiedDonor(userId: string, verified: boolean) {
 
   if (error) {
     if (error.message.includes("verified_donor")) {
-      return { error: "Apply migration 012 in Supabase first." };
+      console.error("[setVerifiedDonor] verified_donor column missing:", error.message);
+      return { error: "This action isn't available yet. Please try again later." };
     }
     return { error: error.message };
   }
@@ -246,7 +247,8 @@ export async function archiveCommunity(communityId: string, archived: boolean) {
 
   if (error) {
     if (error.message.includes("is_archived")) {
-      return { error: "Apply migration 012 in Supabase first." };
+      console.error("[archiveCommunity] is_archived column missing:", error.message);
+      return { error: "This action isn't available yet. Please try again later." };
     }
     return { error: error.message };
   }

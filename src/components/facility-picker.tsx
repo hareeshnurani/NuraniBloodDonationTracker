@@ -169,8 +169,8 @@ export function FacilityPicker({
       )}
 
       <p className="text-[12px] text-[var(--label-tertiary)] leading-relaxed">
-        Listings are curated for the pilot and may be outdated. Confirm blood availability with the hospital or blood bank
-        directly. See the{" "}
+        Hospital and blood bank names are for coordination. Listings may be incomplete or outdated—confirm
+        availability with the facility directly. See the{" "}
         <a href="/disclaimer" className="text-[var(--accent)] hover:underline">
           medical disclaimer
         </a>

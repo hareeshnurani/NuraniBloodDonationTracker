@@ -23,7 +23,7 @@ export default async function AdminReportsPage() {
 
       {error && (
         <p className="text-sm text-[var(--warning)]">
-          Could not load reports. Apply Supabase migration 012 if this table is missing.
+          Could not load reports. This feature may not be set up yet—check server logs if you operate the platform.
         </p>
       )}
 

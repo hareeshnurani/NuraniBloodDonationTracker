@@ -17,7 +17,7 @@ export async function createCommunity(formData: FormData) {
     return {
       error:
         profile?.status === "pending_approval"
-          ? "Your account must be approved before you can create a community."
+          ? "Your account must be approved before you can create a group."
           : "Not authorized",
     };
   }
@@ -26,7 +26,7 @@ export async function createCommunity(formData: FormData) {
   const description = (formData.get("description") as string)?.trim() || null;
   const visibility = (formData.get("visibility") as CommunityVisibility) || "public";
 
-  if (!name) return { error: "Community name is required" };
+  if (!name) return { error: "Group name is required" };
 
   const supabase = await createClient();
   const { data: community, error } = await supabase
@@ -43,9 +43,9 @@ export async function createCommunity(formData: FormData) {
   if (error) {
     const msg = error.message ?? "";
     if (msg.includes("row-level security") && visibility === "private") {
+      console.error("[createCommunity] private group RLS:", msg);
       return {
-        error:
-          "Could not create private community (permissions). If this keeps happening, ask an admin to apply database migration 013_private_community_creator_select.sql.",
+        error: "We couldn't create this private group. Please try again or contact support.",
       };
     }
     return { error: error.message };

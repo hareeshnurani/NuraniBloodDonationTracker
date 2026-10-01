@@ -161,7 +161,7 @@ export default async function HomePage() {
 
   const welcomeSubtitle =
     donorProfile && donatedUnits > 0
-      ? `You have saved ${donatedUnits} ${donatedUnits === 1 ? "life" : "lives"} through your donations. Thank you!`
+      ? `You've completed ${donatedUnits} confirmed donation${donatedUnits === 1 ? "" : "s"} through BloodLink—thank you for showing up when someone needed help.`
       : donorProfile
         ? "Every donation can save a life. Turn on your availability and be someone's hero today."
         : "Your blood donation dashboard";
@@ -248,7 +248,7 @@ export default async function HomePage() {
       {showCommunitiesSection && (
         <section>
           <SectionHeader
-            title="My Communities"
+            title="My groups"
             action={
               <Link
                 href="/communities"

@@ -9,7 +9,7 @@ const features = [
     bg: "bg-[var(--accent-soft)]",
     title: "GPS matching",
     description:
-      "All eligible donors within 50 km are notified automatically when you publish a request.",
+      "Matching donors within 50 km can be notified when you publish a request (based on availability and settings).",
   },
   {
     icon: Shield,

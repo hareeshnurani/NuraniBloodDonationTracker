@@ -1,3 +1,6 @@
+/** Public support — shown in legal pages and account status screens */
+export const SUPPORT_EMAIL = "hareesh.nurani96@gmail.com";
+
 export const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"] as const;
 
 export type BloodGroup = (typeof BLOOD_GROUPS)[number];

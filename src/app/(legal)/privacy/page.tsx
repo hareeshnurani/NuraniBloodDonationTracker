@@ -1,3 +1,5 @@
+import { SUPPORT_EMAIL } from "@/lib/constants";
+
 export default function PrivacyPage() {
   return (
     <>
@@ -5,8 +7,7 @@ export default function PrivacyPage() {
       <p>Last updated: September 2026</p>
       <p>
         This policy describes how BloodLink handles personal data for users in India. It is written to align with
-        common expectations under the Digital Personal Data Protection Act (DPDP); obtain legal review before a public
-        launch at scale.
+        common expectations under the Digital Personal Data Protection Act (DPDP).
       </p>
       <h2>Data we collect</h2>
       <ul>
@@ -39,7 +40,10 @@ export default function PrivacyPage() {
         <li>Control community-only notifications in donor settings.</li>
       </ul>
       <h2>Contact</h2>
-      <p>For privacy requests, contact the project operator listed in your deployment documentation.</p>
+      <p>
+        For privacy requests, email{" "}
+        <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>.
+      </p>
     </>
   );
 }

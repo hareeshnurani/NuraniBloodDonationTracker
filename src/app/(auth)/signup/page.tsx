@@ -148,8 +148,7 @@ export default function SignupPage() {
             </Button>
           </form>
           <p className="mt-4 text-center text-[12px] text-[var(--label-tertiary)] leading-relaxed">
-            After sign-up we email a welcome message when mail is configured (Resend). You&apos;ll
-            continue to profile setup.
+            After sign-up, you&apos;ll set up your profile. We may send a welcome email to your inbox.
           </p>
         </div>
 

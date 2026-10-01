@@ -28,7 +28,8 @@ export async function submitContentReport(
 
   if (error) {
     if (error.message.includes("content_reports")) {
-      return { error: "Reporting is not available until migration 012 is applied in Supabase." };
+      console.error("[submitContentReport] content_reports table missing:", error.message);
+      return { error: "Reporting isn't available right now. Please try again later." };
     }
     return { error: error.message };
   }
