@@ -13,7 +13,7 @@ describe("sendEmailAlert", () => {
       subject: "Test",
       text: "Body",
     });
-    expect(result.ok).toBe(true);
-    expect(result.skipped).toBe(true);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.skipped).toBe(true);
   });
 });

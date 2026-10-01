@@ -77,11 +77,13 @@ export async function sendSignupVerificationEmail(
     link,
   });
 
-  if (sent.skipped) {
-    return { ok: false as const, error: "Email is not configured. Contact support." };
-  }
   if (!sent.ok) {
-    return { ok: false as const, error: sent.error ?? "Email delivery failed." };
+    if (userId) {
+      await admin.auth.admin.deleteUser(userId).catch((err) =>
+        console.error("[auth-emails] rollback user after send failure:", err)
+      );
+    }
+    return { ok: false as const, error: sent.error ?? "We could not send the email." };
   }
 
   return { ok: true as const };
@@ -118,11 +120,8 @@ export async function sendSignupVerificationResend(email: string) {
     link,
   });
 
-  if (sent.skipped) {
-    return { ok: false as const, error: "Email is not configured. Contact support." };
-  }
   if (!sent.ok) {
-    return { ok: false as const, error: sent.error ?? "Email delivery failed." };
+    return { ok: false as const, error: sent.error ?? "We could not send the email." };
   }
 
   return { ok: true as const };
@@ -186,11 +185,11 @@ export async function sendPasswordResetEmail(email: string) {
     ].join("\n"),
   });
 
-  if (sent.skipped) {
+  if (!sent.ok && "skipped" in sent && sent.skipped) {
     return { ok: false as const, useSupabaseMail: true as const };
   }
   if (!sent.ok) {
-    return { ok: false as const, error: sent.error ?? "Email delivery failed." };
+    return { ok: false as const, error: sent.error ?? "We could not send the email." };
   }
 
   return { ok: true as const };
