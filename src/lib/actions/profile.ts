@@ -72,6 +72,23 @@ export async function completeProfile(formData: FormData) {
   return { success: true };
 }
 
+export async function updateProfileName(name: string) {
+  const profile = await getProfile();
+  if (!profile) return { error: "Not authorized" };
+
+  const trimmed = name.trim();
+  if (!trimmed) return { error: "Name is required" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("profiles").update({ name: trimmed }).eq("id", profile.id);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/profile");
+  revalidatePath("/home");
+  return { success: true, message: "Name updated." };
+}
+
 export async function updateDonorProfile(formData: FormData) {
   const profile = await getProfile();
   if (!profile) return { error: "Not authorized" };

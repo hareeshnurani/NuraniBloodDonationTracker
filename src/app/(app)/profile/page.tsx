@@ -20,11 +20,20 @@ import {
   isGpsTimestampFresh,
   locationUnavailableMessage,
 } from "@/lib/profile-location";
-import { BLOOD_GROUPS } from "@/lib/constants";
+import { BLOOD_GROUPS, USER_STATUS_LABELS } from "@/lib/constants";
 import { getEligibleDate, isDonorEligible } from "@/lib/utils";
-import { User, Mail, Droplets, Calendar, LogOut, ClipboardList, History } from "lucide-react";
+import {
+  User,
+  Mail,
+  Droplets,
+  Calendar,
+  LogOut,
+  ClipboardList,
+  History,
+  KeyRound,
+  ShieldCheck,
+} from "lucide-react";
 import { format } from "date-fns";
-import { AccountSecurityPanel } from "@/components/profile/account-security-panel";
 import type { Profile, DonorProfile } from "@/lib/types";
 
 export default function ProfilePage() {
@@ -101,6 +110,7 @@ export default function ProfilePage() {
   const locationState = getEffectiveLocationState(profile);
   const gpsNeedsRefresh =
     (profile.use_my_location ?? false) && !isGpsTimestampFresh(profile.gps_updated_at);
+  const statusLabel = USER_STATUS_LABELS[profile.status] ?? profile.status.replace(/_/g, " ");
 
   return (
     <div className="mx-auto max-w-2xl space-y-8">
@@ -112,38 +122,86 @@ export default function ProfilePage() {
       <PageHeader title="Profile" subtitle="Manage your account and donor settings" />
 
       <GroupedSection title="Account">
-        <GroupedRow>
+        <GroupedRow href="/profile/account" showChevron>
           <GroupedRowIcon color="blue">
             <User className="h-4 w-4" />
           </GroupedRowIcon>
           <div>
-            <p className="text-[13px] text-[var(--label-secondary)]">Name</p>
-            <p className="text-[15px] font-medium text-[var(--label)]">{profile.name}</p>
+            <p className="text-[15px] font-medium text-[var(--label)]">Name</p>
+            <p className="text-[13px] text-[var(--label-secondary)]">{profile.name}</p>
           </div>
         </GroupedRow>
-        <GroupedRow>
+        <GroupedRow href="/profile/account" showChevron>
           <GroupedRowIcon color="gray">
             <Mail className="h-4 w-4" />
           </GroupedRowIcon>
           <div>
-            <p className="text-[13px] text-[var(--label-secondary)]">Email</p>
-            <p className="text-[15px] font-medium text-[var(--label)]">{profile.email}</p>
+            <p className="text-[15px] font-medium text-[var(--label)]">Email</p>
+            <p className="text-[13px] text-[var(--label-secondary)]">{profile.email}</p>
           </div>
         </GroupedRow>
-        <GroupedRow>
+        <GroupedRow href="/profile/account" showChevron>
           <GroupedRowIcon color="green">
-            <User className="h-4 w-4" />
+            <ShieldCheck className="h-4 w-4" />
           </GroupedRowIcon>
           <div>
-            <p className="text-[13px] text-[var(--label-secondary)]">Status</p>
-            <p className="text-[15px] font-medium text-[var(--label)] capitalize">
-              {profile.status.replace("_", " ")}
-            </p>
+            <p className="text-[15px] font-medium text-[var(--label)]">Status</p>
+            <p className="text-[13px] text-[var(--label-secondary)]">{statusLabel}</p>
           </div>
         </GroupedRow>
       </GroupedSection>
 
-      <AccountSecurityPanel currentEmail={profile.email} />
+      <GroupedSection title="History">
+        <GroupedRow href="/profile/requests" showChevron>
+          <GroupedRowIcon color="red">
+            <ClipboardList className="h-4 w-4" />
+          </GroupedRowIcon>
+          <div>
+            <p className="text-[15px] font-medium text-[var(--label)]">Request history</p>
+            <p className="text-[13px] text-[var(--label-secondary)]">
+              All blood requests you have raised
+            </p>
+          </div>
+        </GroupedRow>
+        {donor && (
+          <GroupedRow href="/profile/donations" showChevron>
+            <GroupedRowIcon color="green">
+              <History className="h-4 w-4" />
+            </GroupedRowIcon>
+            <div>
+              <p className="text-[15px] font-medium text-[var(--label)]">Donation history</p>
+              <p className="text-[13px] text-[var(--label-secondary)]">
+                Completed donations only — not declined or not-donated
+              </p>
+            </div>
+          </GroupedRow>
+        )}
+      </GroupedSection>
+
+      <GroupedSection title="Sign-in & security">
+        <GroupedRow href="/profile/security/password" showChevron>
+          <GroupedRowIcon color="purple">
+            <KeyRound className="h-4 w-4" />
+          </GroupedRowIcon>
+          <div>
+            <p className="text-[15px] font-medium text-[var(--label)]">Change password</p>
+            <p className="text-[13px] text-[var(--label-secondary)]">
+              Update the password you use to sign in
+            </p>
+          </div>
+        </GroupedRow>
+        <GroupedRow href="/profile/security/email" showChevron>
+          <GroupedRowIcon color="gray">
+            <Mail className="h-4 w-4" />
+          </GroupedRowIcon>
+          <div>
+            <p className="text-[15px] font-medium text-[var(--label)]">Change email</p>
+            <p className="text-[13px] text-[var(--label-secondary)]">
+              Send a confirmation link to a new address
+            </p>
+          </div>
+        </GroupedRow>
+      </GroupedSection>
 
       <GroupedSection
         title="Location"
@@ -180,35 +238,8 @@ export default function ProfilePage() {
         </div>
       </GroupedSection>
 
-      <GroupedSection title="History">
-        <GroupedRow href="/profile/requests" showChevron>
-          <GroupedRowIcon color="red">
-            <ClipboardList className="h-4 w-4" />
-          </GroupedRowIcon>
-          <div>
-            <p className="text-[15px] font-medium text-[var(--label)]">Request history</p>
-            <p className="text-[13px] text-[var(--label-secondary)]">
-              All blood requests you have raised
-            </p>
-          </div>
-        </GroupedRow>
-        {donor && (
-          <GroupedRow href="/profile/donations" showChevron>
-            <GroupedRowIcon color="green">
-              <History className="h-4 w-4" />
-            </GroupedRowIcon>
-            <div>
-              <p className="text-[15px] font-medium text-[var(--label)]">Donation history</p>
-              <p className="text-[13px] text-[var(--label-secondary)]">
-                Completed donations only — not declined or not-donated
-              </p>
-            </div>
-          </GroupedRow>
-        )}
-      </GroupedSection>
-
       {donor && (
-        <GroupedSection title="Notification Preferences">
+        <GroupedSection title="Notification preferences">
           <div className="p-4">
             <Switch
               checked={donor.notify_community_only ?? false}
@@ -221,7 +252,7 @@ export default function ProfilePage() {
       )}
 
       {donor && (
-        <GroupedSection title="Donor Profile">
+        <GroupedSection title="Donor profile">
           <form onSubmit={handleDonorUpdate} className="p-4 space-y-5">
             <div>
               <div className="flex items-center gap-2 mb-2">
