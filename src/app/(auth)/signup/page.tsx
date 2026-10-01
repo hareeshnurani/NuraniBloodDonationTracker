@@ -33,6 +33,12 @@ export default function SignupPage() {
       return;
     }
 
+    if (result.needsVerification) {
+      setLoading(false);
+      router.push(`/verify-email?email=${encodeURIComponent(email.trim().toLowerCase())}`);
+      return;
+    }
+
     const supabase = createClient();
     const { error: signInError } = await supabase.auth.signInWithPassword({
       email: email.trim().toLowerCase(),
@@ -148,7 +154,8 @@ export default function SignupPage() {
             </Button>
           </form>
           <p className="mt-4 text-center text-[12px] text-[var(--label-tertiary)] leading-relaxed">
-            After sign-up, you&apos;ll set up your profile. We may send a welcome email to your inbox.
+            We&apos;ll email you a confirmation link when verification is enabled, then you can set up
+            your profile.
           </p>
         </div>
 

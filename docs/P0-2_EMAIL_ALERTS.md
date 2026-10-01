@@ -20,6 +20,8 @@ SMS / WhatsApp / Web Push = **Phase 2** (not in this runbook).
 
 | Event | Who gets email | When |
 |--------|----------------|------|
+| **Sign-up verification** | New registrant | When `RESEND_API_KEY` is set (default) or `BLOODLINK_REQUIRE_EMAIL_VERIFICATION=true` |
+| **Welcome** | New registrant | When verification is **off** (`BLOODLINK_REQUIRE_EMAIL_VERIFICATION=false`) |
 | **Emergency** blood request broadcast | Matched donors (same rules as in-app invite) | Priority = **Emergency** on publish/broadcast |
 | **Routine** invite | Matched donors | Only if `BLOODLINK_EMAIL_ALL_INVITES=true` |
 | Request **expired** (cron) | Requester | After deadline passes |
@@ -74,7 +76,18 @@ In **Vercel** → your BloodLink project → **Settings → Environment Variable
 | `BLOODLINK_ALERT_FROM` | Strongly recommended | `BloodLink <onboarding@resend.dev>` or your domain |
 | `BLOODLINK_APP_URL` | Yes for correct links | `https://your-app.vercel.app` |
 | `BLOODLINK_EMAIL_ALL_INVITES` | No | `true` to email on **routine** invites too |
+| `BLOODLINK_REQUIRE_EMAIL_VERIFICATION` | No | `false` to skip verify-before-use (even if Resend is set) |
 | `NEXT_PUBLIC_APP_URL` | Fallback | Same as `BLOODLINK_APP_URL` if you already use it |
+
+### Resend volume (typical free plan)
+
+- **3,000 emails / month**, **100 / day** (resets midnight UTC). Paid plans remove the daily cap and raise monthly volume. See [Resend quotas](https://resend.com/docs/knowledge-base/account-quotas-and-limits).
+- Rough budget: each new user ≈ 1 verification email; emergencies and cron add more. Monitor **Resend → Usage**.
+
+### Supabase (required for verify flow)
+
+In **Authentication → Providers → Email**, enable **Confirm email**.  
+**Site URL** and redirect URLs must include `https://nsbloodlink.in/auth/callback` (and localhost for dev).
 
 Also ensure existing vars are still set: `SUPABASE_*`, `CRON_SECRET` (for expiry emails).
 

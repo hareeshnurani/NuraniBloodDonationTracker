@@ -1,17 +1,16 @@
 "use server";
 
 import { createServiceClient } from "@/lib/supabase/admin";
-import { sendWelcomeEmail } from "@/lib/auth-emails";
+import { isEmailVerificationRequired } from "@/lib/auth-config";
+import { sendSignupVerificationEmail, sendWelcomeEmail } from "@/lib/auth-emails";
 
 export type RegisterResult =
-  | { ok: true }
+  | { ok: true; needsVerification?: boolean }
   | { ok: false; error: string; code?: "already_exists" };
 
 /**
- * Creates a user without sending Supabase confirmation email.
- * Use when custom SMTP is not configured (built-in Supabase mail often returns
- * "Error sending confirmation email"). Set BLOODLINK_USE_EMAIL_CONFIRMATION=true
- * and configure SMTP in Supabase to restore email verification flow.
+ * Sign-up with optional email verification (Resend + Supabase generateLink).
+ * Set BLOODLINK_REQUIRE_EMAIL_VERIFICATION=true on Vercel when Resend is configured.
  */
 export async function registerUser(
   name: string,
@@ -33,15 +32,6 @@ export async function registerUser(
     return { ok: false, error: "Password must be at least 6 characters" };
   }
 
-  if (process.env.BLOODLINK_USE_EMAIL_CONFIRMATION === "true") {
-    console.error("[registerUser] BLOODLINK_USE_EMAIL_CONFIRMATION is enabled but signup expects admin createUser");
-    return {
-      ok: false,
-      error: "Sign-up is temporarily unavailable. Please try again later.",
-    };
-  }
-
-  const admin = createServiceClient();
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()) {
     console.error("[registerUser] SUPABASE_SERVICE_ROLE_KEY is missing");
     return {
@@ -49,6 +39,14 @@ export async function registerUser(
       error: "Sign-up is temporarily unavailable. Please try again later.",
     };
   }
+
+  if (isEmailVerificationRequired()) {
+    const sent = await sendSignupVerificationEmail(trimmedEmail, trimmedName, password);
+    if (!sent.ok) return { ok: false, error: sent.error };
+    return { ok: true, needsVerification: true };
+  }
+
+  const admin = createServiceClient();
 
   const { data, error } = await admin.auth.admin.createUser({
     email: trimmedEmail,

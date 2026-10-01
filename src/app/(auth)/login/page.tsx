@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { Droplets } from "lucide-react";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -20,10 +22,26 @@ export default function LoginPage() {
     const supabase = createClient();
     const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
     if (authError) {
+      const msg = authError.message.toLowerCase();
+      if (msg.includes("confirm") || msg.includes("verified")) {
+        setError("Please confirm your email first. Check your inbox or resend the link below.");
+        setLoading(false);
+        router.push(`/verify-email?email=${encodeURIComponent(email.trim().toLowerCase())}`);
+        return;
+      }
       setError(authError.message);
       setLoading(false);
       return;
     }
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user && !user.email_confirmed_at) {
+      window.location.href = `/verify-email?email=${encodeURIComponent(user.email ?? email)}`;
+      return;
+    }
+
     window.location.href = "/home";
   }
 
