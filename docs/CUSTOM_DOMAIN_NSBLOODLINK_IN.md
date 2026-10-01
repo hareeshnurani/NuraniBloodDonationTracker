@@ -93,6 +93,6 @@ Private community creation needs migration **013** — see [SUPABASE_SQL_TO_RUN.
 ## Registrar tips (.in)
 
 - Turn on **auto-renew** for `nsbloodlink.in`.
-- If the registrar offers **free DNS**, you can point records there; or move DNS to **Cloudflare** (free) and point to Vercel from Cloudflare.
+- **Recommended:** Cloudflare free DNS + Vercel — step-by-step: [CLOUDFLARE_DNS_VERCEL.md](./CLOUDFLARE_DNS_VERCEL.md).
 
 You only pay for the **domain renewal** (~₹500–900/yr typical for `.in`) plus free Vercel hobby tier unless you upgrade.
